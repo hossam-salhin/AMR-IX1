@@ -1,0 +1,38 @@
+# ROS2 build artifacts
+build/
+install/
+log/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/settings.json
+.idea/
+
+# Temporary files
+*.swp
+*.swo
+*~
+
+# Large binary files (meshes tracked intentionally)
+# *.STL  ← we DO want to track these
+
+# SolidWorks lock files
+*.lck
+
+# VS Code
+.vscode/
+
+# Raw SolidWorks export (source files, not ROS2 package)
+InspectionRobot/
+
+# TF tree debug output
+frames_*.gv
+frames_*.pdf

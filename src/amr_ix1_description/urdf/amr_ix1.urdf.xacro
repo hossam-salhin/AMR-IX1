@@ -1,0 +1,384 @@
+<?xml version="1.0" encoding="utf-8"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="amr_ix1">
+
+  <!-- ================================================================
+       AMR-IX1 Inspection Robot — URDF/Xacro Description
+       Maintainer: Hossam
+       License: Apache-2.0
+  ================================================================ -->
+
+  <!-- ── Materials ────────────────────────────────────────────────── -->
+  <material name="dark_grey">
+    <color rgba="0.251 0.251 0.251 1.0"/>
+  </material>
+  <material name="light_grey">
+    <color rgba="0.753 0.753 0.753 1.0"/>
+  </material>
+  <material name="metal_grey">
+    <color rgba="0.627 0.627 0.627 1.0"/>
+  </material>
+  <material name="dark_charcoal">
+    <color rgba="0.212 0.212 0.204 1.0"/>
+  </material>
+  <material name="white">
+    <color rgba="1.0 0.984 0.984 1.0"/>
+  </material>
+  <material name="blue_grey">
+    <color rgba="0.792 0.820 0.933 1.0"/>
+  </material>
+
+  <!-- ================================================================
+       BASE FOOTPRINT — dummy root link (required by Nav2 and Gazebo)
+  ================================================================ -->
+  <link name="base_footprint"/>
+
+  <joint name="base_footprint_joint" type="fixed">
+    <origin xyz="0 0 0.3347" rpy="0 0 0"/>
+    <parent link="base_footprint"/>
+    <child  link="base_link"/>
+  </joint>
+
+  <!-- ================================================================
+       BASE LINK
+  ================================================================ -->
+  <link name="base_link">
+    <inertial>
+      <origin xyz="-0.048088 0.015216 -0.117965" rpy="0 0 0"/>
+      <mass value="17.7024"/>
+      <inertia
+        ixx="0.212987" ixy="-4.778E-07" ixz="0.014399"
+        iyy="0.266448"  iyz="0.002175"
+        izz="0.358088"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://amr_ix1_description/meshes/visual/base_link.STL"/>
+      </geometry>
+      <material name="dark_grey"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://amr_ix1_description/meshes/collision/base_link.STL"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <!-- ================================================================
+       FRONT RIGHT WHEEL
+  ================================================================ -->
+  <link name="F_R_W_Link">
+    <inertial>
+      <origin xyz="0.000654 0.055120 0.000386" rpy="0 0 0"/>
+      <mass value="5.1478"/>
+      <inertia
+        ixx="0.035042" ixy="2.794E-11" ixz="-7.220E-05"
+        iyy="0.058291"  iyz="-7.127E-11"
+        izz="0.035111"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://amr_ix1_description/meshes/visual/F_R_W_Link.STL"/>
+              <scale>0.001 0.001 0.001</scale>
+      </geometry>
+      <material name="light_grey"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://amr_ix1_description/meshes/collision/F_R_W_Link.STL"/>
+              <scale>0.001 0.001 0.001</scale>
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="F_R_W_joint" type="continuous">
+    <origin xyz="0.273978 -0.529050 -0.259730" rpy="0 0 0"/>
+    <parent link="base_link"/>
+    <child  link="F_R_W_Link"/>
+    <axis xyz="0 1 0"/>
+    <dynamics damping="0.1" friction="0.1"/>
+  </joint>
+
+  <!-- ================================================================
+       FRONT LEFT WHEEL
+  ================================================================ -->
+  <link name="F_L_W_Link">
+    <inertial>
+      <origin xyz="5.723E-07 -0.055120 -0.000759" rpy="0 0 0"/>
+      <mass value="5.1478"/>
+      <inertia
+        ixx="0.035156" ixy="-7.557E-11" ixz="-4.648E-06"
+        iyy="0.058291"  iyz="-1.223E-11"
+        izz="0.034997"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://amr_ix1_description/meshes/visual/F_L_W_Link.STL"/>
+              <scale>0.001 0.001 0.001</scale>
+      </geometry>
+      <material name="light_grey"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://amr_ix1_description/meshes/collision/F_L_W_Link.STL"/>
+              <scale>0.001 0.001 0.001</scale>
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="F_L_W_joint" type="continuous">
+    <origin xyz="0.272414 0.541050 -0.262472" rpy="0 0 0"/>
+    <parent link="base_link"/>
+    <child  link="F_L_W_Link"/>
+    <axis xyz="0 1 0"/>
+    <dynamics damping="0.1" friction="0.1"/>
+  </joint>
+
+  <!-- ================================================================
+       BACK RIGHT WHEEL
+  ================================================================ -->
+  <link name="B_R_W_Link">
+    <inertial>
+      <origin xyz="-9.003E-06 0.055120 -0.000759" rpy="0 0 0"/>
+      <mass value="5.1478"/>
+      <inertia
+        ixx="0.035157" ixy="-7.543E-11" ixz="2.874E-06"
+        iyy="0.058291"  iyz="1.306E-11"
+        izz="0.034997"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://amr_ix1_description/meshes/visual/B_R_W_Link.STL"/>
+              <scale>0.001 0.001 0.001</scale>
+      </geometry>
+      <material name="light_grey"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://amr_ix1_description/meshes/collision/B_R_W_Link.STL"/>
+              <scale>0.001 0.001 0.001</scale>
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="B_R_W_joint" type="continuous">
+    <origin xyz="-0.444885 -0.528950 -0.259725" rpy="0 0 0"/>
+    <parent link="base_link"/>
+    <child  link="B_R_W_Link"/>
+    <axis xyz="0 1 0"/>
+    <dynamics damping="0.1" friction="0.1"/>
+  </joint>
+
+  <!-- ================================================================
+       BACK LEFT WHEEL
+  ================================================================ -->
+  <link name="B_L_W_Link">
+    <inertial>
+      <origin xyz="-0.000649 -0.055120 0.000395" rpy="0 0 0"/>
+      <mass value="5.1478"/>
+      <inertia
+        ixx="0.035044" ixy="2.886E-11" ixz="7.307E-05"
+        iyy="0.058291"  iyz="7.090E-11"
+        izz="0.035109"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://amr_ix1_description/meshes/visual/B_L_W_Link.STL"/>
+              <scale>0.001 0.001 0.001</scale>
+      </geometry>
+      <material name="light_grey"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://amr_ix1_description/meshes/collision/B_L_W_Link.STL"/>
+              <scale>0.001 0.001 0.001</scale>
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="B_L_W_joint" type="continuous">
+    <origin xyz="-0.446680 0.541050 -0.256487" rpy="0 0 0"/>
+    <parent link="base_link"/>
+    <child  link="B_L_W_Link"/>
+    <axis xyz="0 1 0"/>
+    <dynamics damping="0.1" friction="0.1"/>
+  </joint>
+
+  <!-- ================================================================
+       IMU
+  ================================================================ -->
+  <link name="imu_Link">
+    <inertial>
+      <origin xyz="-0.000400 0.000132 0.006812" rpy="0 0 0"/>
+      <mass value="0.010837"/>
+      <inertia
+        ixx="9.951E-07" ixy="2.081E-08" ixz="1.091E-08"
+        iyy="9.555E-07"  iyz="-3.252E-09"
+        izz="1.642E-06"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://amr_ix1_description/meshes/visual/imu_Link.STL"/>
+      </geometry>
+      <material name="metal_grey"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://amr_ix1_description/meshes/collision/imu_Link.STL"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="imu_joint" type="fixed">
+    <origin xyz="0.000249 0.003020 -0.012600" rpy="0 0 0"/>
+    <parent link="base_link"/>
+    <child  link="imu_Link"/>
+  </joint>
+
+  <!-- ================================================================
+       LIDAR
+  ================================================================ -->
+  <link name="laser_Link">
+    <inertial>
+      <origin xyz="-0.005720 0.001226 -0.009051" rpy="0 0 0"/>
+      <mass value="0.141654"/>
+      <inertia
+        ixx="5.691E-05" ixy="-2.879E-07" ixz="-1.248E-05"
+        iyy="8.932E-05"  iyz="7.219E-07"
+        izz="1.087E-04"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://amr_ix1_description/meshes/visual/laser_Link.STL"/>
+      </geometry>
+      <material name="dark_charcoal"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://amr_ix1_description/meshes/collision/laser_Link.STL"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="laser_joint" type="fixed">
+    <origin xyz="0.328135 -0.004554 0.047500" rpy="0 0 0"/>
+    <parent link="base_link"/>
+    <child  link="laser_Link"/>
+  </joint>
+
+  <!-- ================================================================
+       CAMERA STAND
+  ================================================================ -->
+  <link name="cam_stand_Link">
+    <inertial>
+      <origin xyz="0.005597 0.032884 -0.000945" rpy="0 0 0"/>
+      <mass value="0.008532"/>
+      <inertia
+        ixx="5.125E-06" ixy="-1.127E-07" ixz="2.108E-09"
+        iyy="9.300E-07"  iyz="1.718E-08"
+        izz="4.259E-06"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://amr_ix1_description/meshes/visual/cam_stand_Link.STL"/>
+      </geometry>
+      <material name="blue_grey"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://amr_ix1_description/meshes/collision/cam_stand_Link.STL"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="cam_stand_joint" type="revolute">
+    <origin xyz="-0.274040 -0.063863 0.520470" rpy="0 0 0"/>
+    <parent link="base_link"/>
+    <child  link="cam_stand_Link"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="0" upper="-0.7854" effort="10.0" velocity="1.5" />
+    <dynamics damping="0.1" friction="0.1"/>	
+  </joint>
+
+  <!-- ================================================================
+       CAMERA
+  ================================================================ -->
+  <link name="camera_Link">
+    <inertial>
+      <origin xyz="-0.010605 -5.056E-05 -0.001198" rpy="0 0 0"/>
+      <mass value="0.025772"/>
+      <inertia
+        ixx="6.271E-06" ixy="1.006E-11" ixz="3.897E-09"
+        iyy="4.255E-06"  iyz="1.509E-10"
+        izz="4.285E-06"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://amr_ix1_description/meshes/visual/camera_Link.STL"/>
+      </geometry>
+      <material name="white"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://amr_ix1_description/meshes/collision/camera_Link.STL"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="camera_joint" type="fixed">
+    <origin xyz="0.028695 0.053607 0.000157" rpy="0 0 0"/>
+    <parent link="cam_stand_Link"/>
+    <child  link="camera_Link"/>
+  </joint>
+
+  <!-- ================================================================
+       THERMAL CAMERA
+  ================================================================ -->
+  <link name="thermal_link">
+    <inertial>
+      <origin xyz="-0.009412 0.000127 -0.000586" rpy="0 0 0"/>
+      <mass value="0.024852"/>
+      <inertia
+        ixx="6.238E-06" ixy="1.086E-11" ixz="3.867E-09"
+        iyy="4.239E-06"  iyz="-6.644E-11"
+        izz="4.273E-06"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://amr_ix1_description/meshes/visual/thermal_link.STL"/>
+      </geometry>
+      <material name="blue_grey"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://amr_ix1_description/meshes/collision/thermal_link.STL"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="thermal_joint" type="fixed">
+    <origin xyz="0.027189 0.016420 -0.000526" rpy="0 0 0"/>
+    <parent link="cam_stand_Link"/>
+    <child  link="thermal_link"/>
+  </joint>
+
+</robot>

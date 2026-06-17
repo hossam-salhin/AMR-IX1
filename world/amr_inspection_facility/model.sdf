@@ -1,0 +1,152 @@
+<?xml version="1.0"?>
+<sdf version="1.9">
+  <model name="amr_inspection_facility">
+    <static>true</static>
+
+    <link name="COLUMNS_link">
+      <visual name="visual"><geometry><mesh><uri>model://amr_inspection_facility/meshes/COLUMNS.obj</uri></mesh></geometry></visual>
+      <collision name="collision"><geometry><mesh><uri>model://amr_inspection_facility/meshes/COLUMNS.obj</uri></mesh></geometry></collision>
+    </link>
+
+    <link name="DOORS_link">
+      <visual name="visual"><geometry><mesh><uri>model://amr_inspection_facility/meshes/DOORS.obj</uri></mesh></geometry></visual>
+      <collision name="collision"><geometry><mesh><uri>model://amr_inspection_facility/meshes/DOORS.obj</uri></mesh></geometry></collision>
+    </link>
+
+    <link name="MOTOR_M01_Frame_link">
+      <visual name="visual">
+        <geometry><mesh><uri>model://amr_inspection_facility/meshes/MOTOR_M01_Frame.obj</uri></mesh></geometry>
+        <plugin filename="ignition-gazebo-thermal-system" name="ignition::gazebo::systems::Thermal">
+          <temperature>368.15</temperature>
+        </plugin>
+      </visual>
+      <collision name="collision"><geometry><mesh><uri>model://amr_inspection_facility/meshes/MOTOR_M01_Frame.obj</uri></mesh></geometry></collision>
+    </link>
+
+    <link name="MOTOR_M02_Frame_link">
+      <visual name="visual">
+        <geometry><mesh><uri>model://amr_inspection_facility/meshes/MOTOR_M02_Frame.obj</uri></mesh></geometry>
+        <plugin filename="ignition-gazebo-thermal-system" name="ignition::gazebo::systems::Thermal">
+          <temperature>313.15</temperature>
+        </plugin>
+      </visual>
+      <collision name="collision"><geometry><mesh><uri>model://amr_inspection_facility/meshes/MOTOR_M02_Frame.obj</uri></mesh></geometry></collision>
+    </link>
+
+    <link name="EQ_01_MOTORS_link">
+      <visual name="visual"><geometry><mesh><uri>model://amr_inspection_facility/meshes/EQ_01_MOTORS.obj</uri></mesh></geometry></visual>
+      <collision name="collision"><geometry><mesh><uri>model://amr_inspection_facility/meshes/EQ_01_MOTORS.obj</uri></mesh></geometry></collision>
+    </link>
+
+    <link name="PIPE_DischargeHeader_RowA_link">
+      <visual name="visual">
+        <geometry><mesh><uri>model://amr_inspection_facility/meshes/PIPE_DischargeHeader_RowA.obj</uri></mesh></geometry>
+        <plugin filename="ignition-gazebo-thermal-system" name="ignition::gazebo::systems::Thermal">
+          <temperature>338.15</temperature>
+        </plugin>
+      </visual>
+      <collision name="collision"><geometry><mesh><uri>model://amr_inspection_facility/meshes/PIPE_DischargeHeader_RowA.obj</uri></mesh></geometry></collision>
+    </link>
+
+    <link name="EQ_01_PIPES_link">
+      <visual name="visual"><geometry><mesh><uri>model://amr_inspection_facility/meshes/EQ_01_PIPES.obj</uri></mesh></geometry></visual>
+      <collision name="collision"><geometry><mesh><uri>model://amr_inspection_facility/meshes/EQ_01_PIPES.obj</uri></mesh></geometry></collision>
+    </link>
+
+    <link name="EQ_01_PUMPS_link">
+      <visual name="visual"><geometry><mesh><uri>model://amr_inspection_facility/meshes/EQ_01_PUMPS.obj</uri></mesh></geometry></visual>
+      <collision name="collision"><geometry><mesh><uri>model://amr_inspection_facility/meshes/EQ_01_PUMPS.obj</uri></mesh></geometry></collision>
+    </link>
+
+    <link name="TANK_T01_Shell_link">
+      <visual name="visual">
+        <geometry><mesh><uri>model://amr_inspection_facility/meshes/TANK_T01_Shell.obj</uri></mesh></geometry>
+        <plugin filename="ignition-gazebo-thermal-system" name="ignition::gazebo::systems::Thermal">
+          <temperature>348.15</temperature>
+        </plugin>
+      </visual>
+      <collision name="collision"><geometry><mesh><uri>model://amr_inspection_facility/meshes/TANK_T01_Shell.obj</uri></mesh></geometry></collision>
+    </link>
+
+    <link name="EQ_01_TANKS_link">
+      <visual name="visual"><geometry><mesh><uri>model://amr_inspection_facility/meshes/EQ_01_TANKS.obj</uri></mesh></geometry></visual>
+      <collision name="collision"><geometry><mesh><uri>model://amr_inspection_facility/meshes/EQ_01_TANKS.obj</uri></mesh></geometry></collision>
+    </link>
+
+    <link name="ELEC_MCC_CAB_03_Body_link">
+      <visual name="visual">
+        <geometry><mesh><uri>model://amr_inspection_facility/meshes/ELEC_MCC_CAB_03_Body.obj</uri></mesh></geometry>
+        <plugin filename="ignition-gazebo-thermal-system" name="ignition::gazebo::systems::Thermal">
+          <temperature>328.15</temperature>
+        </plugin>
+      </visual>
+      <collision name="collision"><geometry><mesh><uri>model://amr_inspection_facility/meshes/ELEC_MCC_CAB_03_Body.obj</uri></mesh></geometry></collision>
+    </link>
+
+    <link name="EQ_02_ELECTRICAL_link">
+      <visual name="visual"><geometry><mesh><uri>model://amr_inspection_facility/meshes/EQ_02_ELECTRICAL.obj</uri></mesh></geometry></visual>
+      <collision name="collision"><geometry><mesh><uri>model://amr_inspection_facility/meshes/EQ_02_ELECTRICAL.obj</uri></mesh></geometry></collision>
+    </link>
+
+    <link name="EQ_04_IBC_link">
+      <visual name="visual"><geometry><mesh><uri>model://amr_inspection_facility/meshes/EQ_04_IBC.obj</uri></mesh></geometry></visual>
+      <collision name="collision"><geometry><mesh><uri>model://amr_inspection_facility/meshes/EQ_04_IBC.obj</uri></mesh></geometry></collision>
+    </link>
+
+    <link name="EQ_04_PALLETS_link">
+      <visual name="visual"><geometry><mesh><uri>model://amr_inspection_facility/meshes/EQ_04_PALLETS.obj</uri></mesh></geometry></visual>
+      <collision name="collision"><geometry><mesh><uri>model://amr_inspection_facility/meshes/EQ_04_PALLETS.obj</uri></mesh></geometry></collision>
+    </link>
+
+    <link name="EQ_04_RACKS_link">
+      <visual name="visual"><geometry><mesh><uri>model://amr_inspection_facility/meshes/EQ_04_RACKS.obj</uri></mesh></geometry></visual>
+      <collision name="collision"><geometry><mesh><uri>model://amr_inspection_facility/meshes/EQ_04_RACKS.obj</uri></mesh></geometry></collision>
+    </link>
+
+    <link name="EQ_05_MAINTENANCE_link">
+      <visual name="visual"><geometry><mesh><uri>model://amr_inspection_facility/meshes/EQ_05_MAINTENANCE.obj</uri></mesh></geometry></visual>
+      <collision name="collision"><geometry><mesh><uri>model://amr_inspection_facility/meshes/EQ_05_MAINTENANCE.obj</uri></mesh></geometry></collision>
+    </link>
+
+    <link name="EQ_06_CHARGING_link">
+      <visual name="visual"><geometry><mesh><uri>model://amr_inspection_facility/meshes/EQ_06_CHARGING.obj</uri></mesh></geometry></visual>
+      <collision name="collision"><geometry><mesh><uri>model://amr_inspection_facility/meshes/EQ_06_CHARGING.obj</uri></mesh></geometry></collision>
+    </link>
+
+    <link name="EQ_07_INSPECTION_link">
+      <visual name="visual"><geometry><mesh><uri>model://amr_inspection_facility/meshes/EQ_07_INSPECTION.obj</uri></mesh></geometry></visual>
+      <collision name="collision"><geometry><mesh><uri>model://amr_inspection_facility/meshes/EQ_07_INSPECTION.obj</uri></mesh></geometry></collision>
+    </link>
+
+    <link name="EQ_08_ANOMALIES_link">
+      <visual name="visual"><geometry><mesh><uri>model://amr_inspection_facility/meshes/EQ_08_ANOMALIES.obj</uri></mesh></geometry></visual>
+      <collision name="collision"><geometry><mesh><uri>model://amr_inspection_facility/meshes/EQ_08_ANOMALIES.obj</uri></mesh></geometry></collision>
+    </link>
+
+    <link name="FLOOR_MARKINGS_link">
+      <visual name="visual"><geometry><mesh><uri>model://amr_inspection_facility/meshes/FLOOR_MARKINGS.obj</uri></mesh></geometry></visual>
+      <collision name="collision"><geometry><mesh><uri>model://amr_inspection_facility/meshes/FLOOR_MARKINGS.obj</uri></mesh></geometry></collision>
+    </link>
+
+    <link name="INTERIOR_WALLS_link">
+      <visual name="visual"><geometry><mesh><uri>model://amr_inspection_facility/meshes/INTERIOR_WALLS.obj</uri></mesh></geometry></visual>
+      <collision name="collision"><geometry><mesh><uri>model://amr_inspection_facility/meshes/INTERIOR_WALLS.obj</uri></mesh></geometry></collision>
+    </link>
+
+    <link name="NAVIGATION_AIDS_link">
+      <visual name="visual"><geometry><mesh><uri>model://amr_inspection_facility/meshes/NAVIGATION_AIDS.obj</uri></mesh></geometry></visual>
+      <collision name="collision"><geometry><mesh><uri>model://amr_inspection_facility/meshes/NAVIGATION_AIDS.obj</uri></mesh></geometry></collision>
+    </link>
+
+    <link name="STRUCTURE_link">
+      <visual name="visual"><geometry><mesh><uri>model://amr_inspection_facility/meshes/STRUCTURE.obj</uri></mesh></geometry></visual>
+      <collision name="collision"><geometry><mesh><uri>model://amr_inspection_facility/meshes/STRUCTURE.obj</uri></mesh></geometry></collision>
+    </link>
+
+    <link name="WINDOWS_link">
+      <visual name="visual"><geometry><mesh><uri>model://amr_inspection_facility/meshes/WINDOWS.obj</uri></mesh></geometry></visual>
+      <collision name="collision"><geometry><mesh><uri>model://amr_inspection_facility/meshes/WINDOWS.obj</uri></mesh></geometry></collision>
+    </link>
+
+  </model>
+</sdf>
