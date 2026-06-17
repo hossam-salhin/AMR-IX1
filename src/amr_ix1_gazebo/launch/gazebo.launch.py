@@ -88,6 +88,10 @@ def generate_launch_description():
         arguments=[
             '/clock@rosgraph_msgs/msg/Clock[ignition.msgs.Clock',
             '/tf@tf2_msgs/msg/TFMessage[ignition.msgs.Pose_V',
+            '/cmd_vel@geometry_msgs/msg/Twist]ignition.msgs.Twist',
+            '/odom@nav_msgs/msg/Odometry[ignition.msgs.Odometry',
+            '/lidar@sensor_msgs/msg/LaserScan[ignition.msgs.LaserScan',
+            '/joint_states@sensor_msgs/msg/JointState[ignition.msgs.Model',
         ]
     )
 
@@ -119,6 +123,17 @@ def generate_launch_description():
         ]
     )
 
+    # 7. RViz
+    rviz_config = os.path.join(pkg_description, 'rviz', 'amr_ix1.rviz')
+    rviz = Node(
+        package='rviz2',
+        executable='rviz2',
+        name='rviz2',
+        output='screen',
+        arguments=['-d', rviz_config],
+        parameters=[{'use_sim_time': LaunchConfiguration('use_sim_time')}]
+    )
+
     return LaunchDescription([
         set_ign_resource_path,
         use_sim_time,
@@ -128,4 +143,5 @@ def generate_launch_description():
         bridge,
         joint_state_broadcaster,
         diff_drive_controller,
+        rviz,
     ])

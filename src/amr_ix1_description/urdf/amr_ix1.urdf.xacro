@@ -433,6 +433,17 @@
       <state_interface name="velocity"/>
     </joint>
 
+
+    <!-- Camera Stand — position controlled -->
+    <joint name="cam_stand_joint">
+      <command_interface name="position">
+        <param name="min">-0.7854</param>
+        <param name="max">0.0</param>
+      </command_interface>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+    </joint>
+
   </ros2_control>
 
   <!-- Gazebo plugin to load ign_ros2_control -->
@@ -468,6 +479,49 @@
     <mu2>0.6</mu2>
     <kp>1000000.0</kp>
     <kd>1.0</kd>
+  </gazebo>
+
+
+
+
+  <!-- ================================================================
+       LIDAR SENSOR — RPLidar A2 (simulated)
+       Mounted on laser_Link
+  ================================================================ -->
+  <gazebo reference="laser_Link">
+    <sensor name="gpu_lidar" type="gpu_lidar">
+      <topic>lidar</topic>
+      <gz_frame_id>laser_Link</gz_frame_id>
+      <update_rate>10</update_rate>
+      <ray>
+        <scan>
+          <horizontal>
+            <samples>360</samples>
+            <resolution>1</resolution>
+            <min_angle>-3.14159</min_angle>
+            <max_angle>3.14159</max_angle>
+          </horizontal>
+          <vertical>
+            <samples>1</samples>
+            <resolution>0.01</resolution>
+            <min_angle>0</min_angle>
+            <max_angle>0</max_angle>
+          </vertical>
+        </scan>
+        <range>
+          <min>0.15</min>
+          <max>12.0</max>
+          <resolution>0.01</resolution>
+        </range>
+        <noise>
+          <type>gaussian</type>
+          <mean>0.0</mean>
+          <stddev>0.01</stddev>
+        </noise>
+      </ray>
+      <always_on>1</always_on>
+      <visualize>true</visualize>
+    </sensor>
   </gazebo>
 
 </robot>
