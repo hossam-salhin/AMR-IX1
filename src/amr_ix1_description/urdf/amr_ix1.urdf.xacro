@@ -381,4 +381,93 @@
     <child  link="thermal_link"/>
   </joint>
 
+
+  <!-- ================================================================
+       ROS2 CONTROL — Hardware Interface
+       Uses ign_ros2_control for Gazebo simulation
+       Same interface will be used for real hardware (ESP32)
+  ================================================================ -->
+  <ros2_control name="amr_ix1_system" type="system">
+
+    <hardware>
+      <plugin>gz_ros2_control/GazeboSimSystem</plugin>
+    </hardware>
+
+    <!-- Front Right Wheel -->
+    <joint name="F_R_W_joint">
+      <command_interface name="velocity">
+        <param name="min">-10</param>
+        <param name="max">10</param>
+      </command_interface>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+    </joint>
+
+    <!-- Front Left Wheel -->
+    <joint name="F_L_W_joint">
+      <command_interface name="velocity">
+        <param name="min">-10</param>
+        <param name="max">10</param>
+      </command_interface>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+    </joint>
+
+    <!-- Back Right Wheel -->
+    <joint name="B_R_W_joint">
+      <command_interface name="velocity">
+        <param name="min">-10</param>
+        <param name="max">10</param>
+      </command_interface>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+    </joint>
+
+    <!-- Back Left Wheel -->
+    <joint name="B_L_W_joint">
+      <command_interface name="velocity">
+        <param name="min">-10</param>
+        <param name="max">10</param>
+      </command_interface>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+    </joint>
+
+  </ros2_control>
+
+  <!-- Gazebo plugin to load ign_ros2_control -->
+  <gazebo>
+    <plugin name="gz_ros2_control::GazeboSimROS2ControlPlugin"
+        filename="libgz_ros2_control-system.so">
+      <parameters>$(find amr_ix1_gazebo)/config/controllers.yaml</parameters>
+    </plugin>
+  </gazebo>
+
+
+  <!-- Wheel friction properties for Gazebo -->
+  <gazebo reference="F_R_W_Link">
+    <mu1>0.8</mu1>
+    <mu2>0.6</mu2>
+    <kp>1000000.0</kp>
+    <kd>1.0</kd>
+  </gazebo>
+  <gazebo reference="F_L_W_Link">
+    <mu1>0.8</mu1>
+    <mu2>0.6</mu2>
+    <kp>1000000.0</kp>
+    <kd>1.0</kd>
+  </gazebo>
+  <gazebo reference="B_R_W_Link">
+    <mu1>0.8</mu1>
+    <mu2>0.6</mu2>
+    <kp>1000000.0</kp>
+    <kd>1.0</kd>
+  </gazebo>
+  <gazebo reference="B_L_W_Link">
+    <mu1>0.8</mu1>
+    <mu2>0.6</mu2>
+    <kp>1000000.0</kp>
+    <kd>1.0</kd>
+  </gazebo>
+
 </robot>

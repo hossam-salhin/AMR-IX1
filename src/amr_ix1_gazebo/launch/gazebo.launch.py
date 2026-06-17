@@ -1,7 +1,7 @@
 import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, SetEnvironmentVariable
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, SetEnvironmentVariable, TimerAction
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, Command
 from launch_ros.actions import Node
@@ -15,13 +15,13 @@ def generate_launch_description():
     pkg_gazebo      = get_package_share_directory('amr_ix1_gazebo')
     pkg_ros_gz_sim  = get_package_share_directory('ros_gz_sim')
 
-    # ── Resource path for Ignition to find ROS2 meshes ────────
-    # Goes up from share/amr_ix1_description to the share/ directory
+    # ── Resource path for Ignition ─────────────────────────────
     ros2_share_dir = os.path.dirname(pkg_description)
 
     # ── File paths ─────────────────────────────────────────────
-    urdf_file  = os.path.join(pkg_description, 'urdf', 'amr_ix1.urdf.xacro')
-    world_file = os.path.join(pkg_gazebo, 'worlds', 'amr_ix1_empty.sdf')
+    urdf_file      = os.path.join(pkg_description, 'urdf', 'amr_ix1.urdf.xacro')
+    world_file     = os.path.join(pkg_gazebo, 'worlds', 'amr_ix1_empty.sdf')
+    controllers_file = os.path.join(pkg_gazebo, 'config', 'controllers.yaml')
 
     # ── Launch arguments ───────────────────────────────────────
     use_sim_time = DeclareLaunchArgument(
@@ -36,7 +36,7 @@ def generate_launch_description():
         value_type=str
     )
 
-    # ── Set Ignition resource path ─────────────────────────────
+    # ── Environment ────────────────────────────────────────────
     set_ign_resource_path = SetEnvironmentVariable(
         name='IGN_GAZEBO_RESOURCE_PATH',
         value=ros2_share_dir
@@ -44,7 +44,7 @@ def generate_launch_description():
 
     # ── Nodes ──────────────────────────────────────────────────
 
-    # 1. Launch Ignition Gazebo
+    # 1. Ignition Gazebo
     gazebo = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(pkg_ros_gz_sim, 'launch', 'gz_sim.launch.py')
@@ -64,7 +64,7 @@ def generate_launch_description():
         }]
     )
 
-    # 3. Spawn robot in Gazebo
+    # 3. Spawn robot
     spawn_robot = Node(
         package='ros_gz_sim',
         executable='create',
@@ -91,6 +91,34 @@ def generate_launch_description():
         ]
     )
 
+    # 5. Joint State Broadcaster — delayed to let Gazebo load first
+    joint_state_broadcaster = TimerAction(
+        period=5.0,
+        actions=[
+            Node(
+                package='controller_manager',
+                executable='spawner',
+                name='joint_state_broadcaster_spawner',
+                output='screen',
+                arguments=['joint_state_broadcaster'],
+            )
+        ]
+    )
+
+    # 6. Diff Drive Controller — delayed after joint state broadcaster
+    diff_drive_controller = TimerAction(
+        period=7.0,
+        actions=[
+            Node(
+                package='controller_manager',
+                executable='spawner',
+                name='diff_drive_controller_spawner',
+                output='screen',
+                arguments=['diff_drive_controller'],
+            )
+        ]
+    )
+
     return LaunchDescription([
         set_ign_resource_path,
         use_sim_time,
@@ -98,4 +126,6 @@ def generate_launch_description():
         gazebo,
         spawn_robot,
         bridge,
+        joint_state_broadcaster,
+        diff_drive_controller,
     ])
