@@ -92,6 +92,10 @@ def generate_launch_description():
             '/odom@nav_msgs/msg/Odometry[ignition.msgs.Odometry',
             '/lidar@sensor_msgs/msg/LaserScan[ignition.msgs.LaserScan',
             '/joint_states@sensor_msgs/msg/JointState[ignition.msgs.Model',
+            '/imu@sensor_msgs/msg/Imu[ignition.msgs.IMU',
+            '/camera/image@sensor_msgs/msg/Image[ignition.msgs.Image',
+            '/camera/camera_info@sensor_msgs/msg/CameraInfo[ignition.msgs.CameraInfo',
+            '/thermal/image@sensor_msgs/msg/Image[ignition.msgs.Image',
         ]
     )
 
