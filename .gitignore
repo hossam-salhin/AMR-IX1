@@ -36,3 +36,7 @@ InspectionRobot/
 # TF tree debug output
 frames_*.gv
 frames_*.pdf
+
+# Blender files
+*.blend
+*.blend1
