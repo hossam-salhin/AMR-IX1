@@ -95,7 +95,7 @@
   </link>
 
   <joint name="F_R_W_joint" type="continuous">
-    <origin xyz="0.273978 -0.529050 -0.259730" rpy="0 0 0"/>
+    <origin xyz="0.36129 -0.53208 -0.26273" rpy="0 0 0"/>
     <parent link="base_link"/>
     <child  link="F_R_W_Link"/>
     <axis xyz="0 1 0"/>
@@ -132,7 +132,7 @@
   </link>
 
   <joint name="F_L_W_joint" type="continuous">
-    <origin xyz="0.272414 0.541050 -0.262472" rpy="0 0 0"/>
+    <origin xyz="0.35973 0.53802 -0.26547" rpy="0 0 0"/>
     <parent link="base_link"/>
     <child  link="F_L_W_Link"/>
     <axis xyz="0 1 0"/>
@@ -169,7 +169,7 @@
   </link>
 
   <joint name="B_R_W_joint" type="continuous">
-    <origin xyz="-0.444885 -0.528950 -0.259725" rpy="0 0 0"/>
+    <origin xyz="-0.35757 -0.53198 -0.26273" rpy="0 0 0"/>
     <parent link="base_link"/>
     <child  link="B_R_W_Link"/>
     <axis xyz="0 1 0"/>
@@ -206,7 +206,7 @@
   </link>
 
   <joint name="B_L_W_joint" type="continuous">
-    <origin xyz="-0.446680 0.541050 -0.256487" rpy="0 0 0"/>
+    <origin xyz="-0.35936 0.53802 -0.25949" rpy="0 0 0"/>
     <parent link="base_link"/>
     <child  link="B_L_W_Link"/>
     <axis xyz="0 1 0"/>
@@ -274,7 +274,7 @@
   </link>
 
   <joint name="laser_joint" type="fixed">
-    <origin xyz="0.328135 -0.004554 0.047500" rpy="0 0 0"/>
+    <origin xyz="0.41545 -0.0075875 0.0445" rpy="0 0 0"/>
     <parent link="base_link"/>
     <child  link="laser_Link"/>
   </joint>
@@ -307,7 +307,7 @@
   </link>
 
   <joint name="cam_stand_joint" type="revolute">
-    <origin xyz="-0.274040 -0.063863 0.520470" rpy="0 0 0"/>
+    <origin xyz="-0.18673 -0.066896 0.51747" rpy="0 0 0"/>
     <parent link="base_link"/>
     <child  link="cam_stand_Link"/>
     <axis xyz="0 1 0"/>
@@ -390,7 +390,7 @@
   <ros2_control name="amr_ix1_system" type="system">
 
     <hardware>
-      <plugin>gz_ros2_control/GazeboSimSystem</plugin>
+      <plugin>ign_ros2_control/IgnitionSystem</plugin>
     </hardware>
 
     <!-- Front Right Wheel -->
@@ -448,8 +448,7 @@
 
   <!-- Gazebo plugin to load ign_ros2_control -->
   <gazebo>
-    <plugin name="gz_ros2_control::GazeboSimROS2ControlPlugin"
-        filename="libgz_ros2_control-system.so">
+    <plugin filename="libign_ros2_control-system.so" name="ign_ros2_control::IgnitionROS2ControlPlugin">
       <parameters>$(find amr_ix1_gazebo)/config/controllers.yaml</parameters>
     </plugin>
   </gazebo>
@@ -496,7 +495,7 @@
       <ray>
         <scan>
           <horizontal>
-            <samples>360</samples>
+            <samples>180</samples>
             <resolution>1</resolution>
             <min_angle>-3.14159</min_angle>
             <max_angle>3.14159</max_angle>
@@ -520,7 +519,7 @@
         </noise>
       </ray>
       <always_on>1</always_on>
-      <visualize>true</visualize>
+      <visualize>false</visualize>
     </sensor>
   </gazebo>
 
@@ -532,7 +531,7 @@
   <gazebo reference="imu_Link">
     <sensor name="imu_sensor" type="imu">
       <always_on>true</always_on>
-      <update_rate>100</update_rate>
+      <update_rate>50</update_rate>
       <visualize>true</visualize>
       <topic>imu</topic>
       <gz_frame_id>imu_Link</gz_frame_id>
@@ -596,7 +595,7 @@
       <topic>camera/image</topic>
       <gz_frame_id>camera_Link</gz_frame_id>
       <always_on>true</always_on>
-      <update_rate>30</update_rate>
+      <update_rate>10</update_rate>
       <visualize>true</visualize>
       <camera>
         <horizontal_fov>1.3962634</horizontal_fov>
@@ -629,8 +628,8 @@
       <topic>thermal/image</topic>
       <gz_frame_id>thermal_link</gz_frame_id>
       <always_on>true</always_on>
-      <update_rate>9</update_rate>
-      <visualize>true</visualize>
+      <update_rate>5</update_rate>
+      <visualize>false</visualize>
       <camera>
         <horizontal_fov>0.9599</horizontal_fov>
         <image>
@@ -642,8 +641,34 @@
           <near>0.1</near>
           <far>30</far>
         </clip>
+        <!-- Temperature range: 0=300K(cold/black), 255=400K(hot/white) -->
+        <min_temp>300.0</min_temp>
+        <max_temp>400.0</max_temp>
       </camera>
     </sensor>
+  </gazebo>
+
+
+  <!-- ================================================================
+       THERMAL PROPERTIES — required for thermal camera sensor
+  ================================================================ -->
+  <gazebo reference="base_link">
+    <temperature>310.0</temperature>
+  </gazebo>
+  <gazebo reference="F_R_W_Link">
+    <temperature>305.0</temperature>
+  </gazebo>
+  <gazebo reference="F_L_W_Link">
+    <temperature>305.0</temperature>
+  </gazebo>
+  <gazebo reference="B_R_W_Link">
+    <temperature>305.0</temperature>
+  </gazebo>
+  <gazebo reference="B_L_W_Link">
+    <temperature>305.0</temperature>
+  </gazebo>
+  <gazebo reference="laser_Link">
+    <temperature>308.0</temperature>
   </gazebo>
 
 </robot>

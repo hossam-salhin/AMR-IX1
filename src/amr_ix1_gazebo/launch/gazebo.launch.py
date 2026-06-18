@@ -15,13 +15,15 @@ def generate_launch_description():
     pkg_gazebo      = get_package_share_directory('amr_ix1_gazebo')
     pkg_ros_gz_sim  = get_package_share_directory('ros_gz_sim')
 
-    # ── Resource path for Ignition ─────────────────────────────
-    ros2_share_dir = os.path.dirname(pkg_description)
+    # ── Resource paths ─────────────────────────────────────────
+    ros2_share_dir    = os.path.dirname(pkg_description)
+    gazebo_models_dir = os.path.join(pkg_gazebo, 'worlds')
 
     # ── File paths ─────────────────────────────────────────────
-    urdf_file      = os.path.join(pkg_description, 'urdf', 'amr_ix1.urdf.xacro')
-    world_file     = os.path.join(pkg_gazebo, 'worlds', 'amr_ix1_empty.sdf')
+    urdf_file        = os.path.join(pkg_description, 'urdf', 'amr_ix1.urdf.xacro')
+    world_file       = os.path.join(pkg_gazebo, 'worlds', 'amr_ix1_empty.sdf')
     controllers_file = os.path.join(pkg_gazebo, 'config', 'controllers.yaml')
+    rviz_config      = os.path.join(pkg_description, 'rviz', 'amr_ix1.rviz')
 
     # ── Launch arguments ───────────────────────────────────────
     use_sim_time = DeclareLaunchArgument(
@@ -36,10 +38,10 @@ def generate_launch_description():
         value_type=str
     )
 
-    # ── Environment ────────────────────────────────────────────
+    # ── Environment — only what is necessary ──────────────────
     set_ign_resource_path = SetEnvironmentVariable(
         name='IGN_GAZEBO_RESOURCE_PATH',
-        value=ros2_share_dir
+        value=ros2_share_dir + ':' + gazebo_models_dir
     )
 
     # ── Nodes ──────────────────────────────────────────────────
@@ -99,7 +101,7 @@ def generate_launch_description():
         ]
     )
 
-    # 5. Joint State Broadcaster — delayed to let Gazebo load first
+    # 5. Joint State Broadcaster
     joint_state_broadcaster = TimerAction(
         period=5.0,
         actions=[
@@ -113,7 +115,7 @@ def generate_launch_description():
         ]
     )
 
-    # 6. Diff Drive Controller — delayed after joint state broadcaster
+    # 6. Diff Drive Controller
     diff_drive_controller = TimerAction(
         period=7.0,
         actions=[
@@ -128,7 +130,6 @@ def generate_launch_description():
     )
 
     # 7. RViz
-    rviz_config = os.path.join(pkg_description, 'rviz', 'amr_ix1.rviz')
     rviz = Node(
         package='rviz2',
         executable='rviz2',

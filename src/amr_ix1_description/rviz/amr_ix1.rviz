@@ -6,7 +6,10 @@ Panels:
       Expanded:
         - /Global Options1
         - /Status1
-        - /RobotModel1
+        - /LaserScan1
+        - /TF1
+        - /TF1/Frames1
+        - /TF1/Tree1
       Splitter Ratio: 0.5
     Tree Height: 549
   - Class: rviz_common/Selection
@@ -26,7 +29,7 @@ Panels:
     Experimental: false
     Name: Time
     SyncMode: 0
-    SyncSource: LaserScan
+    SyncSource: ""
 Visualization Manager:
   Class: ""
   Displays:
@@ -138,7 +141,7 @@ Visualization Manager:
       Channel Name: intensity
       Class: rviz_default_plugins/LaserScan
       Color: 255; 255; 255
-      Color Transformer: Intensity
+      Color Transformer: FlatColor
       Decay Time: 0
       Enabled: true
       Invert Rainbow: false
@@ -150,7 +153,7 @@ Visualization Manager:
       Position Transformer: XYZ
       Selectable: true
       Size (Pixels): 3
-      Size (m): 0.009999999776482582
+      Size (m): 0.05000000074505806
       Style: Flat Squares
       Topic:
         Depth: 5
@@ -162,10 +165,64 @@ Visualization Manager:
       Use Fixed Frame: true
       Use rainbow: true
       Value: true
+    - Class: rviz_default_plugins/TF
+      Enabled: true
+      Frame Timeout: 15
+      Frames:
+        All Enabled: false
+        B_L_W_Link:
+          Value: false
+        B_R_W_Link:
+          Value: false
+        F_L_W_Link:
+          Value: false
+        F_R_W_Link:
+          Value: false
+        base_footprint:
+          Value: false
+        base_link:
+          Value: false
+        cam_stand_Link:
+          Value: false
+        camera_Link:
+          Value: false
+        imu_Link:
+          Value: false
+        laser_Link:
+          Value: false
+        thermal_link:
+          Value: false
+      Marker Scale: 1
+      Name: TF
+      Show Arrows: true
+      Show Axes: true
+      Show Names: false
+      Tree:
+        base_footprint:
+          base_link:
+            B_L_W_Link:
+              {}
+            B_R_W_Link:
+              {}
+            F_L_W_Link:
+              {}
+            F_R_W_Link:
+              {}
+            cam_stand_Link:
+              camera_Link:
+                {}
+              thermal_link:
+                {}
+            imu_Link:
+              {}
+            laser_Link:
+              {}
+      Update Interval: 0
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
-    Fixed Frame: odom
+    Fixed Frame: base_link
     Frame Rate: 30
   Name: root
   Tools:
@@ -208,25 +265,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 7.502229690551758
+      Distance: 1.1289536952972412
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -0.07344446331262589
-        Y: -0.17036423087120056
-        Z: 0.5201172828674316
+        X: 0.06441817432641983
+        Y: 0.019663654267787933
+        Z: 0.04630393534898758
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.300398588180542
+      Pitch: 0.5053988099098206
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 5.5885748863220215
+      Yaw: 2.743560791015625
     Saved: ~
 Window Geometry:
   Displays:
