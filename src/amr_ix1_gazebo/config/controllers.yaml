@@ -1,51 +1,52 @@
 controller_manager:
   ros__parameters:
-    update_rate: 50  # Hz
-
-    # Controllers to load
-    diff_drive_controller:
-      type: diff_drive_controller/DiffDriveController
+    update_rate: 50
+    use_sim_time: true
 
     joint_state_broadcaster:
       type: joint_state_broadcaster/JointStateBroadcaster
 
+    diff_drive_controller:
+      type: diff_drive_controller/DiffDriveController
+
 diff_drive_controller:
   ros__parameters:
+    # ربط العجلات
+    left_wheel_names: ["F_L_W_joint", "B_L_W_joint"]
+    right_wheel_names: ["F_R_W_joint", "B_R_W_joint"]
 
-    # Wheel joints — skid steer: 2 left, 2 right
-    left_wheel_names:  ['F_L_W_joint', 'B_L_W_joint']
-    right_wheel_names: ['F_R_W_joint', 'B_R_W_joint']
-
-    # Robot geometry
+    # الأبعاد الفيزيائية المطابقة لـ Husky
     wheel_separation: 1.07
-    wheel_radius: 0.075
+    wheel_radius: 0.150
 
-    # Odometry
+    wheel_separation_multiplier: 1.0
+    left_wheel_radius_multiplier: 1.0
+    right_wheel_radius_multiplier: 1.0
+
+    # إعدادات الـ Odometry
+    publish_rate: 50.0
     odom_frame_id: odom
     base_frame_id: base_footprint
-    pose_covariance_diagonal:     [0.001, 0.001, 0.001, 0.001, 0.001, 0.01]
-    twist_covariance_diagonal:    [0.001, 0.001, 0.001, 0.001, 0.001, 0.01]
+    
+    # دقة الحسابات لمنع الانزلاق الوهمي في المحاكاة
+    pose_covariance_diagonal: [0.001, 0.001, 0.001, 0.001, 0.001, 0.01]
+    twist_covariance_diagonal: [0.001, 0.001, 0.001, 0.001, 0.001, 0.01]
 
-    # Topics
-    cmd_vel_topic: cmd_vel
-    odom_topic: odom
-
-    # Velocity limits
+    open_loop: false
+    enable_odom_tf: true
+    cmd_vel_timeout: 0.5
+    use_stamped_vel: true
+    
+    # إعدادات السرعة والتسارع (الفرامل)
     linear:
       x:
         has_velocity_limits: true
-        max_velocity: 1.0       # m/s
-        min_velocity: -1.0
+        max_velocity: 0.6
         has_acceleration_limits: true
-        max_acceleration: 1.0
+        max_acceleration: 1.0  # بيخلي الروبوت يفرمل في حوالي نص ثانية بنعومة
     angular:
       z:
         has_velocity_limits: true
-        max_velocity: 2.0       # rad/s
-        min_velocity: -2.0
+        max_velocity: 1.2
         has_acceleration_limits: true
         max_acceleration: 2.0
-
-    # Publishing
-    publish_rate: 50.0
-    use_stamped_vel: false

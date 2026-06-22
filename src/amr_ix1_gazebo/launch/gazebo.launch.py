@@ -21,7 +21,7 @@ def generate_launch_description():
 
     # ── File paths ─────────────────────────────────────────────
     urdf_file        = os.path.join(pkg_description, 'urdf', 'amr_ix1.urdf.xacro')
-    world_file       = os.path.join(pkg_gazebo, 'worlds', 'amr_ix1_empty.sdf')
+    world_file       = os.path.join(pkg_gazebo, 'worlds', 'inspection_world.sdf')
     controllers_file = os.path.join(pkg_gazebo, 'config', 'controllers.yaml')
     rviz_config      = os.path.join(pkg_description, 'rviz', 'amr_ix1.rviz')
 
@@ -75,9 +75,9 @@ def generate_launch_description():
         arguments=[
             '-name', 'amr_ix1',
             '-topic', 'robot_description',
-            '-x', '0.0',
-            '-y', '0.0',
-            '-z', '0.35',
+            '-x', '32.7520',
+            '-y', '3.0',
+            '-z', '0.40',
         ]
     )
 
@@ -89,7 +89,6 @@ def generate_launch_description():
         output='screen',
         arguments=[
             '/clock@rosgraph_msgs/msg/Clock[ignition.msgs.Clock',
-            '/tf@tf2_msgs/msg/TFMessage[ignition.msgs.Pose_V',
             '/cmd_vel@geometry_msgs/msg/Twist]ignition.msgs.Twist',
             '/odom@nav_msgs/msg/Odometry[ignition.msgs.Odometry',
             '/lidar@sensor_msgs/msg/LaserScan[ignition.msgs.LaserScan',
@@ -139,6 +138,18 @@ def generate_launch_description():
         parameters=[{'use_sim_time': LaunchConfiguration('use_sim_time')}]
     )
 
+    twist_stamper = Node(
+        package='twist_stamper',
+        executable='twist_stamper',
+        name='twist_stamper',
+        remappings=[
+            ('cmd_vel_in', '/cmd_vel'),
+            ('cmd_vel_out', '/diff_drive_controller/cmd_vel'),
+        ],
+        parameters=[{'frame_id': 'base_footprint'}],
+        output='screen',
+    )
+
     return LaunchDescription([
         set_ign_resource_path,
         use_sim_time,
@@ -149,4 +160,5 @@ def generate_launch_description():
         joint_state_broadcaster,
         diff_drive_controller,
         rviz,
+        twist_stamper,
     ])

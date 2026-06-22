@@ -2,29 +2,13 @@
 <sdf version="1.9">
   <model name="amr_inspection_facility">
     <static>true</static>
-    <link name="link">
+    <link name="factory_link">
       <collision name="collision">
-        <geometry>
-          <plane>
-            <normal>0 0 1</normal>
-            <size>200 200</size>
-          </plane>
-        </geometry>
-        <surface>
-          <friction>
-            <ode>
-              <mu>0.8</mu>
-              <mu2>0.8</mu2>
-            </ode>
-          </friction>
-        </surface>
+        <geometry><mesh><uri>model://amr_inspection_facility/meshes/factory_collision.obj</uri><scale>1 1 1</scale></mesh></geometry>
+        <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
       </collision>
       <visual name="visual">
-        <geometry>
-          <mesh>
-            <uri>model://amr_inspection_facility/meshes/factory_layout.obj</uri>
-          </mesh>
-        </geometry>
+        <geometry><mesh><uri>model://amr_inspection_facility/meshes/factory_layout.obj</uri><scale>1 1 1</scale></mesh></geometry>
       </visual>
     </link>
   </model>
