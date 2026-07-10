@@ -58,9 +58,9 @@
       <material name="dark_grey"/>
     </visual>
     <collision>
-      <origin xyz="0 0 0.05" rpy="0 0 0"/>
+      <origin xyz="0.10 0 0.11" rpy="0 0 0"/>
       <geometry>
-        <box size="0.60 0.40 0.20"/> 
+        <box size="0.90 0.75 0.25"/> 
       </geometry>
     </collision>
   </link>
@@ -83,19 +83,19 @@
       <material name="light_grey"/>
     </visual>
     <collision>
-      <origin xyz="0 0 0" rpy="0 0 0"/> 
-      <geometry>
-        <sphere radius="0.15"/> 
-      </geometry>
+	  <origin xyz="0 -0.025 0" rpy="1.5708 0 0"/> 
+	  <geometry>
+	    <cylinder radius="0.155" length="0.12"/> 
+	  </geometry>
     </collision>
   </link>
 
   <joint name="F_R_W_joint" type="continuous">
-    <origin xyz="0.36129 -0.53208 -0.26273" rpy="0 0 0"/>
+    <origin xyz="0.36 -0.45 -0.0300" rpy="0 0 0"/>
     <parent link="base_link"/>
     <child  link="F_R_W_Link"/>
     <axis xyz="0 1 0"/>
-    <dynamics damping="0.2" friction="0.2"/>
+    <dynamics damping="3.0" friction="2.0"/>
   </joint>
 
   <!-- ================================================================
@@ -116,19 +116,19 @@
       <material name="light_grey"/>
     </visual>
     <collision>
-      <origin xyz="0 0 0" rpy="0 0 0"/> 
-      <geometry>
-        <sphere radius="0.15"/> 
-      </geometry>
+	  <origin xyz="0 0.025 0" rpy="1.5708 0 0"/> 
+	  <geometry>
+	    <cylinder radius="0.155" length="0.12"/> 
+	  </geometry>
     </collision>
   </link>
 
   <joint name="F_L_W_joint" type="continuous">
-    <origin xyz="0.35973 0.53802 -0.26547" rpy="0 0 0"/>
+    <origin xyz="0.36 0.45 -0.0300" rpy="0 0 0"/>
     <parent link="base_link"/>
     <child  link="F_L_W_Link"/>
     <axis xyz="0 1 0"/>
-    <dynamics damping="0.2" friction="0.2"/>
+    <dynamics damping="3.0" friction="2.0"/>
   </joint>
 
   <!-- ================================================================
@@ -149,19 +149,19 @@
       <material name="light_grey"/>
     </visual>
     <collision>
-      <origin xyz="0 0 0" rpy="0 0 0"/> 
-      <geometry>
-        <sphere radius="0.15"/> 
-      </geometry>
+	  <origin xyz="0 -0.025 0" rpy="1.5708 0 0"/> 
+	  <geometry>
+	    <cylinder radius="0.155" length="0.12"/> 
+	  </geometry>
     </collision>
   </link>
 
   <joint name="B_R_W_joint" type="continuous">
-    <origin xyz="-0.35757 -0.53198 -0.26273" rpy="0 0 0"/>
+    <origin xyz="-0.36 -0.45 -0.0300" rpy="0 0 0"/>
     <parent link="base_link"/>
     <child  link="B_R_W_Link"/>
     <axis xyz="0 1 0"/>
-    <dynamics damping="0.2" friction="0.2"/>
+    <dynamics damping="3.0" friction="2.0"/>
   </joint>
 
   <!-- ================================================================
@@ -182,19 +182,19 @@
       <material name="light_grey"/>
     </visual>
     <collision>
-      <origin xyz="0 0 0" rpy="0 0 0"/> 
-      <geometry>
-        <sphere radius="0.15"/> 
-      </geometry>
+	  <origin xyz="0 0.025 0" rpy="1.5708 0 0"/> 
+	  <geometry>
+	    <cylinder radius="0.155" length="0.12"/> 
+	  </geometry>
     </collision>
   </link>
 
   <joint name="B_L_W_joint" type="continuous">
-    <origin xyz="-0.35936 0.53802 -0.25949" rpy="0 0 0"/>
+    <origin xyz="-0.36 0.45 -0.0300" rpy="0 0 0"/>
     <parent link="base_link"/>
     <child  link="B_L_W_Link"/>
     <axis xyz="0 1 0"/>
-    <dynamics damping="0.2" friction="0.2"/>
+    <dynamics damping="3.0" friction="2.0"/>
   </joint>
 
   <!-- ================================================================
@@ -210,14 +210,14 @@
         izz="1.642E-06"/>
     </inertial>
     <visual>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <origin xyz="0 0 0" rpy="3.14159 0 0"/>
       <geometry>
         <mesh filename="package://amr_ix1_description/meshes/visual/imu_Link.STL"/>
       </geometry>
       <material name="metal_grey"/>
     </visual>
     <collision>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <origin xyz="0 0 0" rpy="3.14159 0 0"/>
       <geometry>
         <mesh filename="package://amr_ix1_description/meshes/collision/imu_Link.STL"/>
       </geometry>
@@ -225,7 +225,7 @@
   </link>
 
   <joint name="imu_joint" type="fixed">
-    <origin xyz="0.000249 0.003020 -0.012600" rpy="0 0 0"/>
+    <origin xyz="0.0 0.0 0.0" rpy="0 0 0"/>
     <parent link="base_link"/>
     <child  link="imu_Link"/>
   </joint>
@@ -258,7 +258,7 @@
   </link>
 
   <joint name="laser_joint" type="fixed">
-    <origin xyz="0.41545 -0.0075875 0.0445" rpy="0 0 0"/>
+    <origin xyz="0.415447680695362 -0.00758871084657819 0.27756000072765" rpy="0 0 0"/>
     <parent link="base_link"/>
     <child  link="laser_Link"/>
   </joint>
@@ -291,7 +291,7 @@
   </link>
 
   <joint name="cam_stand_joint" type="revolute">
-    <origin xyz="-0.18673 -0.066896 0.51747" rpy="0 0 0"/>
+    <origin xyz="-0.18673 -0.066898 0.75053" rpy="0 0 0"/>
     <parent link="base_link"/>
     <child  link="cam_stand_Link"/>
     <axis xyz="0 1 0"/>
@@ -443,8 +443,8 @@
     <mu1>1.0</mu1>
     <mu2>0.05</mu2>
     <fdir1>1 0 0</fdir1>
-    <kp>100000.0</kp> 
-    <kd>100.0</kd>
+    <kp>10000000.0</kp> 
+    <kd>1.0</kd>
     <minDepth>0.001</minDepth>
   </gazebo>
 
@@ -452,8 +452,8 @@
     <mu1>1.0</mu1>
     <mu2>0.05</mu2>
     <fdir1>1 0 0</fdir1>
-    <kp>100000.0</kp> 
-    <kd>100.0</kd>
+    <kp>10000000.0</kp> 
+    <kd>1.0</kd>
     <minDepth>0.001</minDepth>
   </gazebo>
 
@@ -461,8 +461,8 @@
     <mu1>1.0</mu1>
     <mu2>0.05</mu2>
     <fdir1>1 0 0</fdir1>
-    <kp>100000.0</kp> 
-    <kd>100.0</kd>
+    <kp>10000000.0</kp> 
+    <kd>1.0</kd>
     <minDepth>0.001</minDepth>
   </gazebo>
 
@@ -470,8 +470,8 @@
     <mu1>1.0</mu1>
     <mu2>0.05</mu2>
     <fdir1>1 0 0</fdir1>
-    <kp>100000.0</kp> 
-    <kd>100.0</kd>
+    <kp>10000000.0</kp> 
+    <kd>1.0</kd>
     <minDepth>0.001</minDepth>
   </gazebo>
 
@@ -486,7 +486,7 @@
     <sensor name="gpu_lidar" type="gpu_lidar">
       <topic>lidar</topic>
       <gz_frame_id>laser_Link</gz_frame_id>
-      <update_rate>20</update_rate>
+      <update_rate>5</update_rate>
       <ray>
         <scan>
           <horizontal>
@@ -514,7 +514,7 @@
         </noise>
       </ray>
       <always_on>1</always_on>
-      <visualize>true</visualize>
+      <visualize>false</visualize>
     </sensor>
   </gazebo>
 
@@ -643,27 +643,5 @@
     </sensor>
   </gazebo>
 
-
-  <!-- ================================================================
-       THERMAL PROPERTIES — required for thermal camera sensor
-  ================================================================ -->
-  <gazebo reference="base_link">
-    <temperature>310.0</temperature>
-  </gazebo>
-  <gazebo reference="F_R_W_Link">
-    <temperature>305.0</temperature>
-  </gazebo>
-  <gazebo reference="F_L_W_Link">
-    <temperature>305.0</temperature>
-  </gazebo>
-  <gazebo reference="B_R_W_Link">
-    <temperature>305.0</temperature>
-  </gazebo>
-  <gazebo reference="B_L_W_Link">
-    <temperature>305.0</temperature>
-  </gazebo>
-  <gazebo reference="laser_Link">
-    <temperature>308.0</temperature>
-  </gazebo>
 
 </robot>

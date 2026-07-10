@@ -2,6 +2,8 @@
 build/
 install/
 log/
+inspectionRobot/ 
+map_building/
 
 # Python
 __pycache__/
@@ -40,3 +42,6 @@ frames_*.pdf
 # Blender files
 *.blend
 *.blend1
+
+
+inspection_logs/

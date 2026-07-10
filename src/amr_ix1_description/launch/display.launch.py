@@ -19,7 +19,7 @@ def generate_launch_description():
     # ── Launch arguments ───────────────────────────────────────
     use_sim_time = DeclareLaunchArgument(
         name='use_sim_time',
-        default_value='false',
+        default_value='true',
         description='Use simulation (Gazebo) clock if true'
     )
 
@@ -59,6 +59,6 @@ def generate_launch_description():
     return LaunchDescription([
         use_sim_time,
         robot_state_publisher_node,
-        joint_state_publisher_gui_node,
+        #joint_state_publisher_gui_node,
         rviz_node,
     ])
