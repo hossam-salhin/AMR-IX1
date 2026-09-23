@@ -147,8 +147,8 @@ global_costmap:
           data_type: "LaserScan"
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
-        cost_scaling_factor: 2.0
-        inflation_radius: 0.80
+        cost_scaling_factor: 1.5
+        inflation_radius: 2.5
 
 map_server:
   ros__parameters:
@@ -169,7 +169,7 @@ planner_server:
       max_on_approach_iterations: 1000
       use_final_approach_orientation: true
       minimum_turning_radius: 0.01
-      cost_travel_multiplier: 50.0
+      cost_travel_multiplier: 2.0
 
 behavior_server:
   ros__parameters:

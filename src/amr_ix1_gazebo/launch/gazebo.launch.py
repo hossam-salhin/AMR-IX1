@@ -17,11 +17,11 @@ def generate_launch_description():
 
     # ── Resource paths ─────────────────────────────────────────
     ros2_share_dir    = os.path.dirname(pkg_description)
-    gazebo_models_dir = os.path.join(pkg_gazebo, 'models')
+    gazebo_models_dir = os.path.join(pkg_gazebo, 'worlds')
 
     # ── File paths ─────────────────────────────────────────────
     urdf_file        = os.path.join(pkg_description, 'urdf', 'amr_ix1.urdf.xacro')
-    world_file       = os.path.join(pkg_gazebo, 'worlds', 'tugbot_warehouse.sdf')
+    world_file       = os.path.join(pkg_gazebo, 'worlds', 'inspection_world.sdf')
     controllers_file = os.path.join(pkg_gazebo, 'config', 'controllers.yaml')
     rviz_config      = os.path.join(pkg_description, 'rviz', 'amr_ix1.rviz')
 
@@ -75,10 +75,9 @@ def generate_launch_description():
         arguments=[
             '-name', 'amr_ix1',
             '-topic', 'robot_description',
-            '-x', '16.9768',
-            '-y', '-13.3305',
-            '-z', '0.25',
-            '-Y', '3.14159265',
+            '-x', '32.7520',
+            '-y', '3.0',
+            '-z', '0.40',
         ]
     )
 
