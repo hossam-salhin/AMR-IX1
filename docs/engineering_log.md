@@ -46,6 +46,23 @@ The following parameters were changed temporarily at runtime from the terminal a
 - `general_goal_checker.xy_goal_tolerance = 0.10 m`
 - `general_goal_checker.yaw_goal_tolerance = 0.10 rad`
 
+### Test Map
+The navigation test was performed using `testing_map.yaml` instead of the main inspection map.
+
+This map was selected as a lighter validation environment to maintain more stable RTF while investigating and validating the final goal orientation behavior.
+
+The main inspection map remains the primary project map and was not replaced by the testing map.
+
+### Gazebo Test Environment
+The navigation validation was run in the dedicated warehouse test environment.
+
+The Gazebo launch configuration was updated to:
+- Use the project `models` directory for Gazebo model resources.
+- Launch `tugbot_warehouse.sdf`.
+- Spawn the AMR at the corresponding warehouse test starting pose.
+
+These launch changes are part of the validation environment used during the navigation orientation investigation.
+
 ### Test Goal
 RViz `/goal_pose`:
 

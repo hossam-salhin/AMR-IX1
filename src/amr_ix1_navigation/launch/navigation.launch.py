@@ -10,7 +10,7 @@ def generate_launch_description():
     pkg_nav = get_package_share_directory('amr_ix1_navigation')
     pkg_nav2_bringup = get_package_share_directory('nav2_bringup')
 
-    map_file = os.path.join(pkg_nav, 'maps', 'Main_AMR_IX1_map.yaml')
+    map_file = os.path.join(pkg_nav, 'maps', 'testing_map.yaml')
     params_file = os.path.join(pkg_nav, 'config', 'nav2_params.yaml')
 
     use_sim_time = DeclareLaunchArgument('use_sim_time', default_value='true')
