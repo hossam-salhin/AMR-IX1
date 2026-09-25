@@ -32,3 +32,48 @@ The repository cleanup is complete. Future navigation experiments will be develo
 
 ### Next Step
 Continue navigation validation and investigate remaining navigation behavior, particularly goal orientation and performance on the main inspection map.
+
+
+## 2026-09-25 — session 2 (Navigation Goal Orientation Validation)
+
+### Goal
+Validate the final navigation pose after investigating the incorrect final yaw behavior.
+
+### Runtime Test Configuration
+The following parameters were changed temporarily at runtime from the terminal and were NOT yet committed to the YAML configuration:
+
+- `GridBased.use_final_approach_orientation = false`
+- `general_goal_checker.xy_goal_tolerance = 0.10 m`
+- `general_goal_checker.yaw_goal_tolerance = 0.10 rad`
+
+### Test Goal
+RViz `/goal_pose`:
+
+- x = 21.884 m
+- y = -28.465 m
+- yaw = 0.89°
+
+### Settling
+A 1-second settling delay was added to the test script before reading the final `map -> base_link` transform.
+
+### Final Result
+- Nav2 status: `SUCCEEDED`
+- Position error: **0.089 m (89 mm)**
+- Yaw error: **5.39°**
+- XY tolerance: 0.10 m (100 mm)
+- Yaw tolerance: 0.10 rad (~5.73°)
+
+Both final errors were within the temporary runtime tolerances.
+
+### A/B Test Finding
+With `GridBased.use_final_approach_orientation = true`, the final path orientation caused a large final yaw error of approximately **52.89°**.
+
+With the parameter set to `false` at runtime, the same goal produced a final yaw error of **5.39°** after the 1-second settling period.
+
+### Decision
+The runtime test supports keeping `GridBased.use_final_approach_orientation = false` for the next navigation validation.
+
+The YAML configuration has NOT been changed yet. The runtime parameter changes should be made persistent only after the navigation behavior is fully validated.
+
+### Next Step
+Before making persistent configuration changes, continue controlled navigation validation and then update the YAML and commit the validated configuration.
