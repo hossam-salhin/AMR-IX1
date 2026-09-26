@@ -27,7 +27,7 @@ class NavigationGoalTest(Node):
 
         # Goal copied from RViz /goal_pose
         self.goal_x = 21.883745193481445
-        self.goal_x = 21.883745193481445
+        self.goal_y = -28.46511459350586
 
         # RViz goal quaternion
         self.goal_z = 0.007747706251893465
