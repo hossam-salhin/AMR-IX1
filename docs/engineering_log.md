@@ -94,3 +94,142 @@ The YAML configuration has NOT been changed yet. The runtime parameter changes s
 
 ### Next Step
 Before making persistent configuration changes, continue controlled navigation validation and then update the YAML and commit the validated configuration.
+
+## 2026-09-26 — Session 3 (Navigation Goal Orientation & Tolerance Validation)
+
+### Objective
+
+Finalize the navigation goal orientation behavior and validate practical position/yaw goal tolerances.
+
+### Goal Orientation Investigation
+
+The previous configuration used:
+
+```yaml
+use_final_approach_orientation: true
+```
+
+A controlled A/B test was performed using the same navigation goal.
+
+#### Result with `use_final_approach_orientation = true`
+
+- Position error: approximately `0.128 m`
+- Yaw error: approximately `53.35°`
+- Nav2 result: `SUCCEEDED`
+
+Inspection of the final planned path showed that the path orientation near the goal differed significantly from the requested goal orientation.
+
+#### Result with `use_final_approach_orientation = false`
+
+Using the same goal:
+
+- Position error: approximately `0.128 m`
+- Yaw error: approximately `8.42°`
+- Nav2 result: `SUCCEEDED`
+
+The large final yaw error observed with the previous configuration was strongly associated with `use_final_approach_orientation = true`.
+
+### Second Goal Validation
+
+A second goal with a different requested orientation was tested to verify that the behavior was not specific to the first goal.
+
+Target:
+
+- Position: approximately `(20.5, -28.0)`
+- Yaw: `90°`
+
+Final measured pose:
+
+- Position: approximately `(20.534, -28.174)`
+- Yaw: approximately `95.63°`
+
+Results:
+
+- Position error: approximately `0.177 m`
+- Yaw error: approximately `5.63°`
+
+The robot successfully reached the second goal with a final orientation close to the requested orientation.
+
+### Persistent Configuration Changes
+
+Based on the controlled tests, the planner configuration was changed from:
+
+```yaml
+use_final_approach_orientation: true
+```
+
+to:
+
+```yaml
+use_final_approach_orientation: false
+```
+
+The goal checker tolerances were then reduced.
+
+Previous values:
+
+```yaml
+xy_goal_tolerance: 0.15
+yaw_goal_tolerance: 0.15
+```
+
+Validated values:
+
+```yaml
+xy_goal_tolerance: 0.10
+yaw_goal_tolerance: 0.10
+```
+
+### Final Tolerance Validation
+
+The same navigation goal was tested after restarting the navigation stack with the new persistent configuration.
+
+Final action result:
+
+- Nav2 result: `SUCCEEDED`
+- Position error: `0.104 m`
+- Yaw error: `3.95°`
+
+A subsequent stable TF measurement after the robot had completely stopped showed:
+
+- Position: approximately `(21.768, -28.426)`
+- Yaw: approximately `-2.76°`
+- Position error: approximately `0.123 m`
+- Yaw error: approximately `3.65°`
+
+The difference between the action-result measurement and the later TF measurement is due to the measurements being taken at different times after the navigation action completed.
+
+### Final Validated Configuration
+
+```yaml
+general_goal_checker:
+  plugin: "nav2_controller::SimpleGoalChecker"
+  xy_goal_tolerance: 0.10
+  yaw_goal_tolerance: 0.10
+  stateful: true
+```
+
+Planner:
+
+```yaml
+use_final_approach_orientation: false
+```
+
+### Decision
+
+The validated configuration will be kept as the current navigation baseline.
+
+Further reduction of goal tolerances is not justified at this stage because the observed positional error can still vary around the 10 cm target. Additional tuning can be considered later if improved localization or control accuracy is required.
+
+### Engineering Conclusion
+
+The final goal orientation issue was investigated using controlled navigation tests and an A/B comparison of the planner's final approach orientation behavior.
+
+Disabling `use_final_approach_orientation` reduced the observed final yaw error from approximately `53°` to single-digit degrees across multiple goals while maintaining comparable positional accuracy.
+
+The goal checker tolerances were subsequently reduced to:
+
+- `0.10 m` XY tolerance
+- `0.10 rad` yaw tolerance (~`5.7°`)
+
+The navigation goal orientation and tolerance configuration is now considered validated for the current simulation baseline.
