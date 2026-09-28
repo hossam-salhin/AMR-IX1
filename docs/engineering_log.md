@@ -233,3 +233,85 @@ The goal checker tolerances were subsequently reduced to:
 - `0.10 rad` yaw tolerance (~`5.7°`)
 
 The navigation goal orientation and tolerance configuration is now considered validated for the current simulation baseline.
+
+
+## 2026-09-28 — Session 4 (Dynamic Obstacle Replanning Investigation)
+
+### Objective
+
+Investigate Nav2 behavior when previously unknown obstacles block a corridor entrance and determine how dynamic LiDAR observations affect the global and local costmaps and path replanning.
+
+### Test Setup
+
+- Navigation stack: Nav2
+- Global planner: SmacPlanner2D
+- Local controller: Regulated Pure Pursuit
+- LiDAR topic: `/lidar`
+- Obstacle type: two simulated cubes placed near a corridor entrance
+- A small gap was intentionally left between the two cubes
+- Robot footprint:
+  `[[0.42,0.51],[0.42,-0.51],[-0.42,-0.51],[-0.42,0.51]]`
+
+### Relevant Costmap Configuration
+
+Global costmap:
+- `rolling_window: false`
+- Plugins:
+  - `static_layer`
+  - `obstacle_layer`
+  - `inflation_layer`
+- Obstacle source: `/lidar`
+- `clearing: true`
+
+Local costmap:
+- `rolling_window: true`
+- Configured width/height: `5 m × 5 m`
+- Obstacle source: `/lidar`
+- `clearing: true`
+- `inflation_radius: 0.45 m`
+
+> Note: During the live investigation, the local costmap was temporarily expanded to `7 m × 7 m` using runtime parameters to test whether a larger observation window would eliminate the path switching. The larger window did not resolve the behavior. The persistent configuration was kept at `5 m × 5 m`.
+
+### Observations
+
+1. When the robot was far from the obstacle pair, the global costmap contained obstacle inflation and Nav2 was able to plan toward the corridor.
+
+2. As the robot moved toward the obstacle pair, the observed obstacle/inflation representation in the global costmap changed depending on the robot pose and LiDAR visibility.
+
+3. When the robot approached the obstacle pair from another direction, parts of the previously visible inflation disappeared from the global costmap.
+
+4. The local costmap showed the obstacle currently visible within the LiDAR observation area, but the complete inflated representation was not always visible around the obstacle pair.
+
+5. With the goal placed inside the blocked corridor, the global path repeatedly switched between the left and right sides of the obstacle pair.
+
+6. In some runs, the robot remained almost stationary because the path changed repeatedly before meaningful movement could occur.
+
+7. In another run, the robot eventually committed to one side, but continued replanning as it approached the obstacles.
+
+8. The global planner publishes `/plan` at approximately `0.93 Hz` under normal conditions, corresponding to roughly one plan per `1.07 s`.
+
+9. During the problematic run, large gaps appeared in `/plan` publication, with observed intervals reaching approximately `3.55 s`, `5.68 s`, and `7.70 s`.
+
+10. Increasing the local costmap from `3 m × 3 m` to `7 m × 7 m` during runtime did not eliminate the path-switching behavior.
+
+### Current Interpretation
+
+The behavior is reproducible and is associated with dynamic obstacle observations from the LiDAR being incorporated into the global costmap while obstacle clearing/raytracing changes the observed obstacle representation as the robot moves.
+
+The global planner subsequently replans using the changing costmap and may select different candidate paths around the obstacle pair.
+
+However, the exact root cause of the repeated left/right path switching has **not yet been isolated**. In particular, it has not yet been conclusively determined whether the dominant factor is:
+
+- LiDAR clearing/raytracing,
+- obstacle persistence in the global costmap,
+- planner replanning behavior,
+- the narrow gap between the obstacles,
+- or interaction between the planner, controller, and behavior tree.
+
+The local costmap was persistently changed from 3 m × 3 m to 5 m × 5 m for the current navigation configuration. This change did not resolve the observed path-switching behavior.
+
+### Result
+
+**Status: Investigation ongoing / root cause not yet isolated.**
+
+The dynamic obstacle test is considered a reproducible limitation/failure case and will be investigated separately from the previously validated navigation baseline.
