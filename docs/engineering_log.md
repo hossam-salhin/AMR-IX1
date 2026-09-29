@@ -315,3 +315,65 @@ The local costmap was persistently changed from 3 m × 3 m to 5 m × 5 m for the
 **Status: Investigation ongoing / root cause not yet isolated.**
 
 The dynamic obstacle test is considered a reproducible limitation/failure case and will be investigated separately from the previously validated navigation baseline.
+
+## 2026-09-29 — session 5 (Dynamic Obstacle Replanning Investigation)
+
+### Goal
+Investigate the repeated left/right path oscillation observed when Nav2 encounters dynamic obstacles blocking a corridor entrance.
+
+### What We Changed
+
+- Tested dynamic obstacle avoidance using two simulated cubes placed near the corridor entrance.
+- Increased local costmap `width` and `height` at runtime up to `8 × 8`.
+- Increased `observation_persistence` for both local and global obstacle layers at runtime.
+- Tested obstacle-layer `clearing` behavior.
+- Increased SmacPlanner2D `cost_travel_multiplier` from `2.0` to `5.0`.
+- Verified the global costmap using the full `/global_costmap/costmap_raw` data instead of the truncated default ROS 2 topic output.
+
+### Validation
+
+The global costmap was confirmed to contain actual lethal and inflated obstacle cells:
+
+- Total cells: `937,791`
+- Lethal cells (`254`): `20,491`
+- Inscribed cells (`253`): `151,377`
+- Free cells (`0`): `332,616`
+- Costed cells (`1–252`): `433,307`
+
+This confirms that LiDAR obstacle marking and costmap obstacle representation are working.
+
+However, the dynamic navigation behavior remained unchanged.
+
+Observed behavior:
+
+1. The planner initially generates a path around one side of the obstacle.
+2. As the robot approaches that route, the path becomes blocked.
+3. Nav2 replans toward the opposite side.
+4. The new path may pass through or very close to the inflated region on the opposite side.
+5. As the robot approaches the new route, the planner changes the path again.
+6. The robot repeatedly switches between the two sides, producing left/right path oscillation.
+7. In some attempts, the robot nearly stopped or interacted physically with the simulated obstacle.
+8. RPP also reported collision detection during some attempts.
+
+Increasing local costmap size, obstacle persistence, and SmacPlanner2D cost weighting did not resolve the behavior.
+
+### Problems / Findings
+
+- The issue is not simply caused by missing obstacle marking.
+- Lethal obstacle cells (`254`) are present in the global costmap.
+- Increasing `observation_persistence` only made obstacle information remain visible for longer; it did not prevent the planner from selecting the opposite inflated region.
+- Increasing the local costmap size did not change the oscillation.
+- Increasing `cost_travel_multiplier` from `2.0` to `5.0` did not produce a meaningful improvement.
+- The remaining problem appears to involve the interaction between dynamic costmap updates, global replanning, inflated costs, and controller/recovery behavior.
+
+### Decision
+
+Stop parameter tuning for this issue temporarily.
+
+The current evidence is sufficient to investigate the underlying Nav2 planning/replanning behavior instead of continuing to modify costmap parameters blindly.
+
+A deeper analysis will be performed before making further configuration changes.
+
+### Next Step
+
+Analyze the dynamic-obstacle behavior with an external ROS2/Nav2 review and identify the highest-probability root causes and the minimum number of targeted experiments required to resolve the issue.
