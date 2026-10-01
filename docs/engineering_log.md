@@ -377,3 +377,236 @@ A deeper analysis will be performed before making further configuration changes.
 ### Next Step
 
 Analyze the dynamic-obstacle behavior with an external ROS2/Nav2 review and identify the highest-probability root causes and the minimum number of targeted experiments required to resolve the issue.
+
+## 2026-10-01 — session 6 (Dynamic Obstacle Replanning Stabilization)
+
+### Goal
+
+Continue the dynamic-obstacle navigation investigation from the previous sessions and identify a practical, stable configuration for global replanning around the simulated obstacle pair.
+
+The objective was not to find mathematically optimal Nav2 parameters, but to obtain a sufficiently stable engineering configuration that can be validated further during the remaining simulation work and later adapted to the real robot.
+
+### Previous Investigation Summary
+
+The dynamic-obstacle scenario consists of two simulated cubes positioned near a corridor entrance.
+
+The previously observed behavior was:
+
+1. The global planner initially selected one side of the obstacle pair.
+2. As the robot approached, LiDAR visibility and obstacle representation changed.
+3. The inflated obstacle regions in the global costmap changed with the robot pose.
+4. The planner could select the opposite side.
+5. Repeated replanning sometimes caused left/right path switching.
+6. In some runs the robot remained almost stationary while the planner/controller repeatedly reacted to the changing path.
+7. Increasing the local costmap size, obstacle persistence, and `cost_travel_multiplier` did not resolve the behavior.
+8. The exact problem was therefore considered to involve the interaction between obstacle observation, costmap updates, global replanning, and controller behavior.
+
+### Experiment 6A — Raytrace Range
+
+The effect of `raytrace_max_range` was investigated separately for the global and local costmaps.
+
+The initial baseline was:
+
+* Global costmap: `raytrace_max_range = 3.0 m`
+* Local costmap: `raytrace_max_range = 3.0 m`
+
+The value was then changed to:
+
+* Global costmap: `raytrace_max_range = 2.7 m`
+* Local costmap: `raytrace_max_range = 3.0 m`
+
+`obstacle_max_range` was explicitly set to `2.5 m` for both costmaps. This matches the previously observed/default effective value and was not intended as an additional behavioral change.
+
+### Experiment 6A Results
+
+The global-only `2.7 m` configuration produced noticeably more stable behavior than the previous `3.0 m` configuration.
+
+Two independent runs were performed.
+
+Observed behavior:
+
+1. The robot approached the obstacle pair.
+2. Obstacle inflation appeared in the global costmap.
+3. The planner changed to the alternative entrance.
+4. The robot was able to continue toward the new route instead of repeatedly switching between both sides.
+5. A second goal was sent farther away.
+6. After reaching that goal, the original goal was sent again.
+7. When the robot approached the obstacle pair again, the inflation representation was initially absent or had cleared.
+8. The obstacles were then detected and represented again.
+9. The planner selected the alternative route quickly.
+10. The same general behavior was observed in both runs.
+
+The global-only `2.7 m` configuration therefore appeared more stable than `3.0 m` in this scenario.
+
+### Decision from Experiment 6A
+
+Keep the following configuration as the current working navigation configuration:
+
+```yaml
+# local costmap
+raytrace_max_range: 3.0
+
+# global costmap
+raytrace_max_range: 2.7
+```
+
+No further raytrace tuning was performed after this point.
+
+The value `2.7 m` is considered a practical simulation configuration rather than a theoretically optimal or hardware-final value. Real LiDAR behavior, sensor noise, latency, obstacle geometry, and robot motion may require further adjustment during hardware integration.
+
+---
+
+### Experiment 6B — Distance-Based Global Replanning
+
+The next suspected contributor was the frequency of global replanning.
+
+The baseline behavior tree used:
+
+```xml
+<RateController hz="1.0">
+```
+
+which caused global planning to be triggered periodically.
+
+A custom navigation behavior tree was introduced using:
+
+```xml
+<DistanceController distance="0.75">
+```
+
+The intention was to reduce excessive reactions to small costmap changes while still allowing the planner to reconsider the route after the robot had moved a meaningful distance.
+
+### Custom Behavior Tree
+
+The current custom BT contains the following navigation pipeline:
+
+```text
+DistanceController (0.75 m)
+        ↓
+ComputePathToPose
+        ↓
+SmoothPath (simple_smoother)
+        ↓
+FollowPath
+```
+
+The recovery section retains:
+
+* Global/local costmap clearing
+* Spin recovery
+* Wait recovery
+* BackUp recovery
+
+The smoothed path is passed to `FollowPath` through:
+
+```text
+{smoothed_path}
+```
+
+rather than directly using the raw planner path.
+
+### Experiment 6B Results
+
+Two independent runs were performed using the combined working configuration.
+
+Observed behavior:
+
+1. The obstacle inflation became significantly more stable.
+2. The global path no longer changed continuously in response to small changes in the costmap.
+3. After selecting a route, the robot continued following that route for a meaningful distance.
+4. Replanning occurred after the robot progressed along the current route rather than continuously.
+5. When a genuinely better route became available, a new path was generated and the robot changed to it.
+6. The previous left/right oscillation was substantially reduced.
+7. The same general behavior was observed in two separate runs.
+
+This represents a significant improvement over the previous repeated path-switching behavior.
+
+### Current Working Configuration
+
+The current navigation configuration for this dynamic-obstacle scenario is:
+
+```text
+Global costmap:
+    obstacle_max_range: 2.5 m
+    raytrace_max_range: 2.7 m
+    inflation_radius: 2.5 m
+    cost_scaling_factor: 1.5
+
+Local costmap:
+    obstacle_max_range: 2.5 m
+    raytrace_max_range: 3.0 m
+    inflation_radius: 0.45 m
+    cost_scaling_factor: 2.0
+
+Global replanning:
+    DistanceController distance: 0.75 m
+
+Path processing:
+    SimpleSmoother
+
+Planner:
+    SmacPlanner2D
+    cost_travel_multiplier: 2.0
+```
+
+The persistent local costmap configuration remains:
+
+```text
+5 m × 5 m
+```
+
+The previously tested `7 m × 7 m` and `8 m × 8 m` local costmap sizes were runtime experiments and did not resolve the path-switching behavior.
+
+### Engineering Interpretation
+
+The results support the following interpretation:
+
+The original instability was not caused by a single missing obstacle or an inability of SmacPlanner2D to find an alternative route.
+
+Instead, the behavior was strongly associated with the interaction between:
+
+* LiDAR obstacle observation and clearing,
+* changing obstacle/inflation representation,
+* global costmap updates,
+* frequent global replanning,
+* and controller execution of continuously changing paths.
+
+Reducing the global raytrace range from `3.0 m` to `2.7 m` produced a more stable global obstacle representation in the tested scenario.
+
+Replacing periodic replanning with distance-based replanning then reduced the sensitivity of the navigation behavior to small intermediate costmap changes.
+
+The addition of path smoothing is part of the current custom BT configuration and was tested together with the distance-based replanning configuration. Therefore, the current results do not isolate the individual contribution of `DistanceController` and `SmoothPath`.
+
+### Decision
+
+The current configuration is accepted as the **working simulation configuration** for the dynamic-obstacle scenario.
+
+No further parameter optimization will be performed for this issue unless a new reproducible navigation problem appears.
+
+The goal is not to exhaustively optimize every Nav2 parameter in simulation. Future problems will be treated as separate engineering issues and investigated only when they produce an observable failure or regression.
+
+### Important Limitation
+
+This configuration is not considered final hardware tuning.
+
+The real AMR may exhibit different behavior due to:
+
+* LiDAR measurement noise,
+* sensor update rate,
+* processing latency,
+* wheel slip,
+* odometry drift,
+* real obstacle geometry,
+* motor/controller response,
+* floor friction,
+* and differences between simulated and physical dynamics.
+
+The current values should therefore be treated as the **validated simulation baseline**, to be revalidated and adjusted during hardware integration if required.
+
+### Status
+
+**Dynamic obstacle replanning investigation: Working simulation configuration established.**
+
+The previous repeated left/right path oscillation has been substantially reduced in two independent runs using the current configuration.
+
+Further investigation is deferred unless the behavior regresses or a new related failure is observed.
