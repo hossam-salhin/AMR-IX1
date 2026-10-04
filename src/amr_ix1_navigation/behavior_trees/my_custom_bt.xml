@@ -9,22 +9,16 @@
       <PipelineSequence name="NavigateWithReplanning">
 
         <!-- 1. مرحلة التخطيط (يُخرج المسار في متغير {path}) -->
-        <DistanceController distance="0.75">
+        <DistanceController distance="0.35">
           <RecoveryNode number_of_retries="1" name="ComputePathToPose">
             <ComputePathToPose goal="{goal}" path="{path}" planner_id="GridBased"/>
             <ClearEntireCostmap name="ClearGlobalCostmap-Context" service_name="global_costmap/clear_entirely_global_costmap"/>
           </RecoveryNode>
         </DistanceController>
 
-        <!-- 2. مرحلة التنعيم الجديدة (تأخذ {path} وتُخرج {smoothed_path}) -->
-        <RecoveryNode number_of_retries="1" name="SmoothPath">
-          <SmoothPath unsmoothed_path="{path}" smoothed_path="{smoothed_path}" smoother_id="simple_smoother"/>
-          <ClearEntireCostmap name="ClearGlobalCostmap-Context" service_name="global_costmap/clear_entirely_global_costmap"/>
-        </RecoveryNode>
-
-        <!-- 3. مرحلة التتبع (تأخذ المسار المنعم {smoothed_path} بدلاً من القديم) -->
+        <!-- 2. مرحلة التتبع: استخدام المسار مباشرة بدون SmoothPath -->
         <RecoveryNode number_of_retries="1" name="FollowPath">
-          <FollowPath path="{smoothed_path}" controller_id="FollowPath"/>
+          <FollowPath path="{path}" controller_id="FollowPath"/>
           <ClearEntireCostmap name="ClearLocalCostmap-Context" service_name="local_costmap/clear_entirely_local_costmap"/>
         </RecoveryNode>
 

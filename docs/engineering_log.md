@@ -610,3 +610,421 @@ The current values should therefore be treated as the **validated simulation bas
 The previous repeated left/right path oscillation has been substantially reduced in two independent runs using the current configuration.
 
 Further investigation is deferred unless the behavior regresses or a new related failure is observed.
+
+# Session 7 — Final Goal Orientation, Navigation Tuning, and Simulation Baseline
+Date: 2026-10-05
+
+## 1. Session Objective
+
+The objective of Session 7 was to investigate the remaining navigation issue where the robot could reach the goal position but sometimes struggled to complete the final goal orientation, especially when a large heading rotation was required.
+
+The investigation followed the established engineering workflow:
+
+Observation → Measurement → Hypothesis → One Experiment → Result → Decision
+
+The goal was not to blindly tune Nav2 parameters, but to determine whether the behavior was caused by navigation configuration, controller behavior, replanning, or simulation physics.
+
+---
+
+## 2. Starting Point
+
+Session 7 started from the clean repository baseline:
+
+e1e84cd — fix(navigation): stabilize dynamic obstacle replanning
+
+The robot was already able to:
+
+- Navigate to predefined goals.
+- Use AMCL localization.
+- Generate and follow global paths.
+- Replan around dynamic obstacles.
+- Complete the previously validated 3-waypoint inspection mission.
+- Capture RGB/thermal inspection data.
+- Generate inspection logs.
+- Use the custom navigation behavior tree.
+- React to dynamic obstacles using the previously validated DistanceController configuration.
+
+The remaining issue was primarily related to final goal orientation.
+
+---
+
+## 3. Initial Final-Rotation Problem
+
+Observed behavior:
+
+- The robot generally reached the correct goal position.
+- Final orientation was sometimes completed successfully.
+- In open areas, final orientation was generally achievable.
+- In constrained/corridor situations, final rotation could become unstable.
+- Large required heading changes were more problematic than smaller rotations.
+- The robot could sometimes rotate correctly and sometimes oscillate.
+- During problematic runs, the robot could move slightly while attempting to rotate.
+- Continuous replanning could then produce a new path and interfere with the final rotation.
+
+The issue was therefore investigated as a navigation/controller/replanning problem rather than immediately assuming a single parameter was responsible.
+
+---
+
+## 4. Progress Checker Experiment
+
+Original configuration:
+
+movement_time_allowance: 5.0
+
+This could cause the controller to declare insufficient progress while the robot was still performing a legitimate final heading adjustment.
+
+Experiment:
+
+movement_time_allowance:
+5.0 → 15.0 seconds
+
+Result:
+
+- The robot was given enough time to complete heading adjustment.
+- Premature progress failure during final heading adjustment was reduced.
+- Open-space goals could complete more reliably.
+
+Decision:
+
+KEEP
+
+Current value:
+
+movement_time_allowance: 15.0
+
+---
+
+## 5. XY Goal Tolerance Investigation
+
+Original value:
+
+xy_goal_tolerance: 0.10 m
+
+The tight XY tolerance increased sensitivity to small physical/simulation movements during final rotation.
+
+Experiments included increasing the tolerance through multiple values.
+
+Observed trend:
+
+- 0.10 m → noticeable oscillation.
+- 0.15 m → limited improvement.
+- 0.20 m → noticeable improvement.
+- 0.25–0.40 m → substantially reduced final-position oscillation.
+
+The current selected value is:
+
+xy_goal_tolerance: 0.25 m
+
+Decision:
+
+KEEP 0.25 m as the current simulation baseline.
+
+This is an engineering trade-off for the current simulation and is not being treated as a universal final hardware value.
+
+---
+
+## 6. RPP Final Approach / Rotation Parameters
+
+The following RPP-related parameters were tested as part of the final-approach investigation:
+
+max_linear_decel:
+1.0 → 1.5
+
+approach_velocity_scaling_dist:
+0.6 m
+
+min_approach_linear_velocity:
+0.05 m/s
+
+rotate_to_heading_min_angle:
+0.78 rad ≈ 45 degrees
+
+The changes were tested rather than being added blindly.
+
+Observed result:
+
+- The parameters affected the final approach and final-heading behavior.
+- Their effect was visible not only for very large rotations but also for smaller final-angle cases.
+- The resulting behavior became more controllable in a number of goal orientations.
+- However, the changes did not completely eliminate the large-angle behavior.
+
+Decision:
+
+KEEP the tested configuration as the current simulation baseline.
+
+Current relevant configuration:
+
+max_linear_decel: 1.5
+approach_velocity_scaling_dist: 0.6
+min_approach_linear_velocity: 0.05
+rotate_to_heading_min_angle: 0.78
+
+---
+
+## 7. Final Rotation Evidence
+
+During problematic rotations, /cmd_vel showed that the robot did not always perform a perfectly stationary pure rotation.
+
+Observed command behavior included:
+
+- angular velocity in the positive direction,
+- small forward linear velocity,
+- angular velocity reduction,
+- angular velocity reversal,
+- negative rotation,
+- later correction back toward the target heading.
+
+This demonstrated that the controller was capable of producing translational motion while the robot was attempting to achieve final orientation.
+
+The goal pose itself remained stable while the path/controller behavior could change during continuous replanning.
+
+---
+
+## 8. Continuous Replanning Observation
+
+During problematic final rotations, the controller repeatedly received new paths.
+
+Typical observation:
+
+Passing new path to controller.
+
+This occurred approximately every 1–1.4 seconds in the continuous-replanning configuration.
+
+This supported the hypothesis that final rotation, small translational drift, and replanning could interact with each other.
+
+However, the evidence was not sufficient to claim that replanning alone was the root cause.
+
+---
+
+## 9. Behavior Tree Experiments
+
+### 9.1 SmoothPath Experiment
+
+A SmoothPath stage was temporarily introduced between path planning and path following.
+
+Conceptually:
+
+ComputePathToPose
+→ SmoothPath
+→ FollowPath
+
+The smoothed path was stored in a separate blackboard variable and then passed to FollowPath.
+
+Observed problems included:
+
+- repeated SmoothPath processing,
+- very high BT activity,
+- messages such as:
+  "Received a path to smooth.",
+- Behavior Tree tick-rate warnings,
+- controller loop timing problems,
+- Failed to make progress,
+- instability during navigation.
+
+The experiment was therefore abandoned.
+
+The current BT does NOT use SmoothPath.
+
+Current structure:
+
+DistanceController
+→ ComputePathToPose
+→ FollowPath
+
+with the existing recovery structure.
+
+Decision:
+
+REMOVE SmoothPath.
+
+---
+
+## 10. DistanceController Investigation
+
+The DistanceController value used in the custom BT was previously:
+
+distance = 0.75 m
+
+During dynamic-obstacle investigation, this was experimentally reduced.
+
+Tested value:
+
+distance = 0.35 m
+
+Result:
+
+Two independent successful runs showed:
+
+- faster route reaction,
+- less time spent approaching the obstacle before replanning,
+- safer distance from the simulated obstacle,
+- no collision in the tested scenario.
+
+Decision:
+
+KEEP
+
+Current BT value:
+
+DistanceController distance="0.35"
+
+This is considered the practical dynamic-obstacle baseline.
+
+---
+
+## 11. Alternative Behavior Tree Experiment
+
+An installed Nav2 behavior tree was tested that replans only when the goal is updated.
+
+Conceptually:
+
+GoalUpdatedController
+→ ComputePathToPose
+→ FollowPath
+
+Result:
+
+The alternative BT did not provide a meaningful improvement for the observed final-rotation problem.
+
+The previous custom BT was therefore restored.
+
+Decision:
+
+KEEP the custom BT.
+
+---
+
+## 12. Current Custom Behavior Tree
+
+Current structure:
+
+NavigateRecovery
+└── NavigateWithReplanning
+    ├── DistanceController distance="0.35"
+    │   └── ComputePathToPose
+    └── FollowPath
+        └── recovery / local costmap clearing
+
+Recovery actions remain available through the existing RecoveryFallback structure.
+
+SmoothPath is NOT part of the current BT.
+
+---
+
+## 13. Large-Angle Rotation Result
+
+After the above experiments:
+
+- Goal position is reached reliably.
+- Final rotation works well for many smaller and medium heading changes.
+- Rotations up to approximately 110 degrees were observed to behave acceptably.
+- Larger final rotations can still produce oscillation/drift in Gazebo.
+
+The remaining behavior appears strongly related to the simulated skid-steer robot's physical response during rotation.
+
+Possible contributing factors include:
+
+- wheel-ground friction,
+- skid-steer lateral slip,
+- Gazebo contact dynamics,
+- wheel inertia,
+- collision/contact behavior,
+- small translational drift during rotation.
+
+This has NOT been proven to be exclusively a Gazebo physics issue.
+
+It is therefore documented as the current engineering hypothesis rather than a confirmed root cause.
+
+---
+
+## 14. Engineering Decision
+
+The team decided to STOP further parameter tuning of the large-angle final-rotation behavior in simulation at this stage.
+
+Reason:
+
+The robot already demonstrates the required navigation functionality, while the remaining issue is strongly coupled to simulated skid-steer dynamics.
+
+The real robot will use different:
+
+- wheel-ground contact,
+- friction,
+- wheel inertia,
+- motor/controller dynamics,
+- mechanical compliance,
+- drivetrain behavior.
+
+Therefore, continuing to optimize Gazebo-specific behavior without hardware validation has diminishing engineering value.
+
+The issue will be revisited during physical robot integration if it appears on the real platform.
+
+---
+
+## 15. Current Navigation Baseline
+
+Important current values:
+
+Progress checker:
+
+required_movement_radius: 0.3
+movement_time_allowance: 15.0
+
+Goal checker:
+
+xy_goal_tolerance: 0.25
+yaw_goal_tolerance: 0.10
+stateful: true
+
+RPP:
+
+desired_linear_vel: 0.3
+max_linear_accel: 1.0
+max_linear_decel: 1.5
+approach_velocity_scaling_dist: 0.6
+min_approach_linear_velocity: 0.05
+lookahead_dist: 0.5
+min_lookahead_dist: 0.3
+max_lookahead_dist: 0.8
+use_velocity_scaled_lookahead_dist: false
+use_rotate_to_heading: true
+rotate_to_heading_angular_vel: 1.0
+max_angular_accel: 2.0
+rotate_to_heading_min_angle: 0.78
+
+SmacPlanner2D:
+
+tolerance: 0.25
+downsample_costmap: false
+use_astar: false
+allow_unknown: true
+max_iterations: 1000000
+max_on_approach_iterations: 1000
+use_final_approach_orientation: false
+minimum_turning_radius: 0.01
+cost_travel_multiplier: 2.0
+
+Custom BT:
+
+DistanceController distance: 0.35 m
+
+---
+
+## 16. Session 7 Conclusion
+
+Session 7 successfully narrowed the final-orientation problem and produced a stable practical navigation baseline.
+
+The main conclusions are:
+
+1. Increasing movement_time_allowance from 5 s to 15 s improved final-heading completion.
+2. Increasing XY goal tolerance reduced sensitivity to small translational drift.
+3. RPP final-approach parameters affected both small and large final-angle behavior.
+4. SmoothPath was not beneficial and was removed.
+5. DistanceController = 0.35 m remains the preferred dynamic-obstacle value.
+6. The alternative goal-update-only BT did not solve the problem.
+7. The custom BT remains the project baseline.
+8. Large-angle rotation instability remains in some Gazebo scenarios.
+9. The issue is now considered a hardware-validation item rather than a blocker for continuing the software project.
+10. Further blind Nav2 tuning is intentionally stopped.
+
+NEXT STEP:
+Continue with the next AMR-IX1 project phase rather than spending more time on Gazebo final-rotation tuning.
