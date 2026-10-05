@@ -129,7 +129,21 @@ def generate_launch_description():
         ]
     )
 
-    # 7. RViz
+    # 7. Camera Stand Position Controller
+    cam_stand_controller = TimerAction(
+        period=8.0,
+        actions=[
+            Node(
+                package='controller_manager',
+                executable='spawner',
+                name='cam_stand_controller_spawner',
+                output='screen',
+                arguments=['cam_stand_controller'],
+            )
+        ]
+    )
+
+    # 8. RViz
     rviz = Node(
         package='rviz2',
         executable='rviz2',
@@ -160,6 +174,7 @@ def generate_launch_description():
         bridge,
         joint_state_broadcaster,
         diff_drive_controller,
+        cam_stand_controller,
         rviz,
         twist_stamper,
     ])

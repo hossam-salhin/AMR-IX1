@@ -9,6 +9,16 @@ controller_manager:
     diff_drive_controller:
       type: diff_drive_controller/DiffDriveController
 
+    cam_stand_controller:
+      type: joint_trajectory_controller/JointTrajectoryController
+
+cam_stand_controller:
+  ros__parameters:
+    joints:
+      - cam_stand_joint
+    interface_name: position
+
+
 diff_drive_controller:
   ros__parameters:
     # ربط العجلات

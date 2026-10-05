@@ -1028,3 +1028,143 @@ The main conclusions are:
 
 NEXT STEP:
 Continue with the next AMR-IX1 project phase rather than spending more time on Gazebo final-rotation tuning.
+
+## Session 8 — Camera Stand Joint Limit / Trajectory Control Investigation
+
+**Date:** 2026-10-05
+**Component:** `cam_stand_joint` / camera stand
+**Status:** Investigation closed for now — not a project blocker
+
+### Objective
+
+Investigate why `cam_stand_joint` could move normally inside its allowed range but, when commanded through the CLI `JointTrajectoryController` to exactly its upper joint limit, it could become unresponsive to subsequent commands until the Gazebo simulation was restarted.
+
+### Configuration
+
+* Joint type: `revolute`
+* Axis: `Y`
+* Lower limit: `-0.7854 rad` (~`-45°`)
+* Upper limit tested:
+
+  * `0.0 rad`
+  * `0.01 rad`
+  * `0.2 rad`
+* Controller:
+
+  * `joint_trajectory_controller/JointTrajectoryController`
+* Command interface:
+
+  * `cam_stand_joint/position`
+* Hardware interface:
+
+  * available and claimed
+* ROS 2: Humble
+* Gazebo: Fortress
+
+### Verified Controller Path
+
+`ros2 control list_controllers` confirmed:
+
+```text
+cam_stand_controller    joint_trajectory_controller/JointTrajectoryController    active
+```
+
+Hardware interface:
+
+```text
+cam_stand_joint/position [available] [claimed]
+```
+
+A failed reverse command after reaching the upper limit showed:
+
+```text
+reference = -0.4
+desired  = -0.4
+output   = -0.4
+actual   = +upper_limit
+```
+
+Therefore, the `JointTrajectoryController` was receiving and generating the requested command correctly. The failure was not caused by the trajectory command itself or by a lost/claimed command interface.
+
+### Controlled Experiments
+
+With `upper = 0.01 rad`:
+
+```text
+0       → -0.4       PASS
+-0.4    → 0          PASS
+0       → +0.005     PASS
++0.005  → -0.4       PASS
+0       → +0.01      PASS
++0.01   → -0.4       FAIL
+```
+
+After reaching the exact upper limit, the joint remained at the upper boundary and did not respond to a reverse CLI trajectory until Gazebo was restarted.
+
+The upper limit was then increased to `+0.2 rad`:
+
+```text
+0       → +0.2       PASS
++0.2    → -0.4       FAIL
+```
+
+This showed that simply increasing the positive margin did not eliminate the CLI trajectory behavior when the exact upper boundary was reached.
+
+### Important Additional Test — `rqt_joint_trajectory`
+
+The same joint was then controlled using the slider in `rqt_joint_trajectory`.
+
+Result:
+
+* Smooth movement in both directions.
+* Movement to the positive upper limit (`+0.2 rad`) worked.
+* Movement back from the upper limit worked normally.
+* Movement to the negative lower limit (`-0.7854 rad`) also worked.
+* Returning from the negative limit worked normally.
+* No permanent lock was observed.
+
+### Conclusion
+
+The camera stand joint itself is functioning correctly in simulation:
+
+* Joint definition is valid.
+* Y-axis orientation is valid.
+* Full intended negative range is reachable.
+* Positive movement is possible.
+* Both physical joint limits can be reached.
+* The joint can recover from both limits when controlled through `rqt_joint_trajectory`.
+
+The previously observed lock appears to be specific to the current CLI/JTC + Gazebo interaction when the joint reaches the exact upper limit. It has **not** been proven to be a Gazebo bug and is **not considered a project blocker at this stage**.
+
+No further controller changes will be made based on this behavior during Session 8.
+
+### Decision
+
+Keep the current `JointTrajectoryController` configuration unchanged for now.
+
+Treat the observed CLI/limit behavior as:
+
+> **Known simulation behavior / open investigation — non-blocking**
+
+The issue can be revisited later if it appears during:
+
+1. integration with the actual robot,
+2. higher-level camera inspection behavior,
+3. automated camera positioning,
+4. or final simulation validation.
+
+Since `rqt_joint_trajectory` demonstrates correct bidirectional behavior at both limits, further debugging of this issue is deferred.
+
+### Session 8 Result
+
+**Camera stand joint control: FUNCTIONALLY VERIFIED in simulation.**
+
+The joint can:
+
+* move through the intended range,
+* reach the upper limit,
+* return from the upper limit,
+* reach the lower limit,
+* and return from the lower limit.
+
+**Session 8 closed.**
