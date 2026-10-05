@@ -16,7 +16,12 @@ cam_stand_controller:
   ros__parameters:
     joints:
       - cam_stand_joint
-    interface_name: position
+    command_interfaces:
+      - position
+  
+    state_interfaces:
+      - position
+      - velocity
 
 
 diff_drive_controller:
