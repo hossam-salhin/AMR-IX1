@@ -14,6 +14,7 @@ def generate_launch_description():
     pkg_description = get_package_share_directory('amr_ix1_description')
     pkg_gazebo      = get_package_share_directory('amr_ix1_gazebo')
     pkg_ros_gz_sim  = get_package_share_directory('ros_gz_sim')
+    pkg_thermal     = get_package_share_directory('amr_ix1_thermal')
 
     # ── Resource paths ─────────────────────────────────────────
     ros2_share_dir    = os.path.dirname(pkg_description)
@@ -143,7 +144,18 @@ def generate_launch_description():
         ]
     )
 
-    # 8. RViz
+    # 8. Thermal Visualizer
+    thermal_visualizer = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(
+                pkg_thermal,
+                'launch',
+                'thermal_visualizer.launch.py'
+            )
+        )
+    )
+
+    # 9. RViz
     rviz = Node(
         package='rviz2',
         executable='rviz2',
@@ -175,6 +187,7 @@ def generate_launch_description():
         joint_state_broadcaster,
         diff_drive_controller,
         cam_stand_controller,
+        thermal_visualizer,
         rviz,
         twist_stamper,
     ])

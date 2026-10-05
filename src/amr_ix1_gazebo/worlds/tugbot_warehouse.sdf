@@ -217,9 +217,7 @@
 
     <include>
 
-      <uri>
-        https://fuel.ignitionrobotics.org/1.0/MovAi/models/shelf
-      </uri>
+      <uri>model://shelf</uri>
 
       <name>
         shelf_4
@@ -344,10 +342,7 @@
 
     <include>
 
-      <uri>
-        https://fuel.ignitionrobotics.org/1.0/MovAi/models/pallet_box_mobile
-      </uri>
-
+      <uri>model://pallet_box_mobile</uri>
       <name>
         pallet_box_mobile_0
       </name>

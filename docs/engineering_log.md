@@ -1168,3 +1168,274 @@ The joint can:
 * and return from the lower limit.
 
 **Session 8 closed.**
+
+
+## Session 9 — Thermal Camera Simulation & Visualization
+
+### Objective
+
+Develop and verify a usable thermal-camera simulation pipeline for AMR-IX1, including:
+
+* Gazebo Fortress thermal sensor configuration.
+* Raw thermal image inspection and temperature conversion.
+* Thermal properties for simulated inspection objects.
+* Local copies of modified Gazebo models.
+* ROS 2 thermal visualization.
+* Fixed absolute temperature display range.
+* Integration with the main Gazebo launch workflow.
+
+### Initial Thermal Camera Behavior
+
+The thermal camera was already publishing a ROS 2 image on:
+
+`/thermal/image`
+
+The initial raw image was:
+
+* `sensor_msgs/msg/Image`
+* `mono8`
+* `160 × 120`
+* approximately `5 Hz`
+
+The first raw image contained a uniform pixel value of `96`.
+
+This initially raised the possibility that the thermal sensor was not responding to the simulated environment.
+
+Direct Gazebo inspection confirmed that the topic was being published correctly.
+
+### Thermal Sensor Configuration
+
+The thermal camera was configured using the Gazebo Fortress thermal sensor with:
+
+* Horizontal FOV: `0.9599 rad`
+* Resolution: `160 × 120`
+* Image format: `L8`
+* Near clip: `0.1 m`
+* Far clip: `30 m`
+* Update rate: `5 Hz`
+* Minimum temperature: `223.15 K` (`-50°C`)
+* Maximum temperature: `673.15 K` (`400°C`)
+* Thermal resolution: `3.0 K/pixel`
+
+The raw Gazebo topic was verified using the Fortress `ign` CLI.
+
+### Raw Temperature Conversion
+
+The raw pixel values were investigated numerically instead of treating the image as a normal grayscale image.
+
+The verified conversion for the current configuration is:
+
+`T_C = pixel × 3.0 - 273.15`
+
+For example:
+
+* Pixel `96` → `14.85°C`
+* Pixel `100` → `26.85°C`
+* Pixel `110` → `56.85°C`
+
+This confirmed that the initial uniform value of `96` represented valid thermal data rather than a failed sensor.
+
+### Thermal Properties for Simulated Objects
+
+To create meaningful temperature variation in the thermal image, thermal properties were added to simulated objects.
+
+The Gazebo Fortress thermal system plugin was used:
+
+```xml
+<plugin filename="ignition-gazebo-thermal-system" name="gz::sim::systems::Thermal">
+  <temperature>330.0</temperature>
+</plugin>
+```
+
+The configured temperature was:
+
+`330.0 K ≈ 56.85°C`
+
+The thermal property was placed inside the relevant model `<visual>` element.
+
+The following objects were configured:
+
+* `pallet_box_mobile`
+* `shelf`
+
+After this modification, the raw thermal image contained multiple temperature values.
+
+A verified diagnostic result was:
+
+* Minimum: `14.85°C`
+* Maximum: `56.85°C`
+* Mean: `23.25°C`
+* Pixels below `10°C`: `0`
+* Pixels at or above `10°C`: `19,200`
+
+Since `160 × 120 = 19,200`, this also confirmed that the complete thermal frame was being received.
+
+### Local Gazebo Models
+
+Because the shelf and pallet models were modified, local copies were created inside the project repository instead of modifying the downloaded Fuel cache.
+
+The local models are stored under:
+
+`src/amr_ix1_gazebo/models/`
+
+The modified world references use local model URIs such as:
+
+`model://shelf`
+
+and:
+
+`model://pallet_box_mobile`
+
+The Gazebo launch file was configured to include the project models directory in `IGN_GAZEBO_RESOURCE_PATH`.
+
+### Model Directory Issue
+
+The downloaded Fuel shelf model originally had the following structure:
+
+```text
+shelf/
+└── 1/
+    ├── model.sdf
+    ├── model.config
+    ├── meshes/
+    └── thumbnails/
+```
+
+For the current `model://shelf` configuration, this structure did not resolve as required.
+
+The contents of the version directory were moved one level upward so that the working structure became:
+
+```text
+shelf/
+├── model.sdf
+├── model.config
+├── meshes/
+└── thumbnails/
+```
+
+The local `model://shelf` reference then worked correctly.
+
+This behavior was documented as an important local-model pitfall.
+
+### Thermal Visualization Package
+
+A new ROS 2 Python package was created:
+
+`amr_ix1_thermal`
+
+The package contains the `thermal_visualizer` node.
+
+Its responsibilities are intentionally separated from the thermal sensor itself.
+
+Input:
+
+`/thermal/image`
+
+Outputs:
+
+* `/thermal/image_color`
+* `/thermal/legend`
+
+The visualizer converts the raw pixel values into Celsius using the verified thermal resolution and then maps the resulting temperature to a custom dense Ironbow-like color palette.
+
+### Display Range Decision
+
+The thermal sensor range and visualization range were intentionally kept independent.
+
+Sensor range:
+
+`-50°C → 400°C`
+
+Current display range:
+
+`10°C → 70°C`
+
+The visualization uses a fixed absolute range rather than normalizing every frame independently.
+
+This preserves consistent color meaning between different frames.
+
+For example, approximately `50°C` is always mapped to the same part of the palette while the display range remains unchanged.
+
+A horizontal temperature legend was added with labels every `5°C` from `10°C` to `70°C`.
+
+### Launch Integration
+
+The thermal visualization package was integrated into the main Gazebo launch workflow.
+
+The main launch now starts:
+
+* Gazebo Fortress.
+* Thermal camera simulation.
+* ROS 2 thermal image bridge.
+* Local modified Gazebo models.
+* `thermal_visualizer`.
+* Colorized thermal output.
+* Thermal temperature legend.
+
+The thermal image bridge uses:
+
+`/thermal/image@sensor_msgs/msg/Image[ignition.msgs.Image`
+
+The integrated launch was verified successfully.
+
+`ros2 node list | grep thermal` returned:
+
+`/thermal_visualizer`
+
+The thermal visualizer was also verified independently using its own launch file.
+
+### Verification
+
+The following parts of the thermal pipeline were functionally verified:
+
+1. Gazebo thermal sensor publication.
+2. Raw `/thermal/image` data.
+3. Raw pixel-to-temperature conversion.
+4. Thermal properties on simulated models.
+5. Local `model://` references.
+6. ROS 2 thermal image bridge.
+7. `amr_ix1_thermal` visualizer.
+8. `/thermal/image_color` publication.
+9. `/thermal/legend` publication.
+10. Integrated Gazebo launch.
+
+The thermal camera produced visible temperature differences after thermal properties were added to the simulated objects.
+
+### Important Design Decisions
+
+The following decisions were made during this session:
+
+* Keep raw thermal data available independently from visualization.
+* Keep sensor temperature range independent from display range.
+* Use fixed absolute display limits instead of per-frame normalization.
+* Keep modified Gazebo models inside the repository.
+* Keep thermal visualization in a dedicated ROS 2 package.
+* Use the raw thermal image as the reference for numerical temperature analysis.
+
+### Known Limitations
+
+The current thermal system is intended for simulation and development.
+
+Current limitations include:
+
+* Thermal model temperatures are currently embedded in model SDF files.
+* Multiple instances of the same modified model therefore share the same configured temperature.
+* The visualization range is currently defined in the Python implementation rather than exposed as ROS 2 parameters.
+* The thermal palette is a custom Ironbow-like palette rather than a calibrated representation of a specific physical camera.
+* Physical thermal-camera integration and calibration remain future work.
+
+### Session 9 Result
+
+**Thermal camera simulation and visualization: FUNCTIONALLY VERIFIED in simulation.**
+
+The AMR-IX1 thermal pipeline can now:
+
+* publish raw thermal data from Gazebo Fortress,
+* convert raw thermal pixels into temperature values,
+* represent different temperatures on simulated objects,
+* use repository-local modified Gazebo models,
+* generate a fixed-range colorized thermal image,
+* publish a temperature legend,
+* and start as part of the normal Gazebo simulation workflow.
+
+**Session 9 closed.**
