@@ -1011,7 +1011,7 @@ Modified Gazebo models are stored under:
 
 ```text
 src/amr_ix1_gazebo/models/
-````
+```
 
 Current local models include:
 
