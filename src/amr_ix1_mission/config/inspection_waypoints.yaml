@@ -1,0 +1,30 @@
+stations:
+  station_1:
+    x: 7.560826
+    y: -24.631884
+    yaw: -3.095337
+    camera_pitch: 0.0
+
+  station_2:
+    x: 9.218530
+    y: -26.900869
+    yaw: -0.101776
+    camera_pitch: 0.0
+
+  station_3:
+    x: 16.751226
+    y: -18.635774
+    yaw: 3.082719
+    camera_pitch: 0.0
+
+  station_4:
+    x: 21.358959
+    y: -7.663277
+    yaw: 3.043311
+    camera_pitch: 0.0
+
+  station_5:
+    x: 14.199006
+    y: 5.960183
+    yaw: 3.104432
+    camera_pitch: 0.0

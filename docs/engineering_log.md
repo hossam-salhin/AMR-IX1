@@ -1439,3 +1439,490 @@ The AMR-IX1 thermal pipeline can now:
 * and start as part of the normal Gazebo simulation workflow.
 
 **Session 9 closed.**
+
+# Session 10 — Mission-Level Inspection Pipeline
+
+**Date:** 2026-10-06  
+**Project:** AMR-IX1  
+**Focus:** Mission-level waypoint navigation, inspection capture, and data logging
+
+---
+
+## Objective
+
+The objective of this session was to move from individual Nav2 waypoint testing toward a complete mission-level inspection workflow.
+
+The intended workflow is:
+
+```text
+Nav2 Navigation
+      ↓
+Reach Inspection Station
+      ↓
+Verify Robot Pose / Stability
+      ↓
+Capture RGB + Thermal
+      ↓
+Log Inspection Data
+      ↓
+Move to Next Station
+```
+
+The main goal was to create the software structure required for autonomous inspection missions while preserving the existing Nav2 navigation stack.
+
+---
+
+## 1. Mission Package Architecture
+
+A new ROS 2 Python package was created:
+
+```text
+amr_ix1_mission
+```
+
+The package is responsible for mission-level logic rather than low-level navigation.
+
+Current structure:
+
+```text
+src/amr_ix1_mission/
+├── amr_ix1_mission/
+│   ├── __init__.py
+│   ├── waypoint_recorder.py
+│   └── inspection_mission.py
+├── config/
+│   └── inspection_waypoints.yaml
+├── package.xml
+├── setup.py
+├── setup.cfg
+└── resource/
+    └── amr_ix1_mission
+```
+
+The design intentionally keeps responsibilities separated:
+
+- `amr_ix1_navigation` → Nav2 configuration, maps, behavior trees, navigation launch.
+- `amr_ix1_mission` → inspection stations, mission sequencing, image capture, CSV logging, and future inspection logic.
+
+This avoids duplicating or replacing Nav2's planner/controller functionality.
+
+---
+
+## 2. Waypoint Recorder
+
+A reusable waypoint recorder was implemented using TF.
+
+The recorder obtains the robot pose from:
+
+```text
+map → base_footprint
+```
+
+and converts the robot orientation quaternion into yaw.
+
+A background ROS 2 spinning thread was required so that TF callbacks continue to be processed while the recorder waits for user input.
+
+The recorder successfully produced five inspection stations.
+
+---
+
+## 3. Inspection Waypoints
+
+The current inspection route contains five stations:
+
+```yaml
+station_1:
+  x: 7.560826
+  y: -24.631884
+  yaw: -3.095337
+  camera_pitch: 0.0
+
+station_2:
+  x: 9.218530
+  y: -26.900869
+  yaw: -0.101776
+  camera_pitch: 0.0
+
+station_3:
+  x: 16.751226
+  y: -18.635774
+  yaw: 3.082719
+  camera_pitch: 0.0
+
+station_4:
+  x: 21.358959
+  y: -7.663277
+  yaw: 3.043311
+  camera_pitch: 0.0
+
+station_5:
+  x: 14.199006
+  y: 5.960183
+  yaw: 3.104432
+  camera_pitch: 0.0
+```
+
+The `camera_pitch` field was introduced for future integration with the camera stand trajectory controller.
+
+The camera stand itself has already been verified independently.
+
+---
+
+## 4. Individual Waypoint Validation
+
+Before integrating the mission script, all five stations were tested individually using Nav2's `/navigate_to_pose` action.
+
+Results:
+
+```text
+Station 1 → SUCCEEDED
+Station 2 → SUCCEEDED
+Station 3 → SUCCEEDED
+Station 4 → SUCCEEDED
+Station 5 → SUCCEEDED
+```
+
+This confirmed that the recorded poses are reachable using the current navigation configuration.
+
+The tests also confirmed that the current Nav2 frame configuration is consistent:
+
+```text
+global_frame: map
+robot_base_frame: base_footprint
+
+AMCL:
+global_frame_id: map
+base_frame_id: base_footprint
+
+Local costmap:
+global_frame: odom
+robot_base_frame: base_footprint
+```
+
+---
+
+## 5. Inspection Mission Node
+
+The first complete mission-level node was implemented:
+
+```text
+inspection_mission.py
+```
+
+The node uses:
+
+```python
+BasicNavigator
+TaskResult
+CvBridge
+OpenCV
+TF2
+YAML
+CSV
+```
+
+The navigation interface is based on Nav2 Simple Commander.
+
+`goToPose()` is used for each inspection station, and the mission checks the resulting `TaskResult`.
+
+Nav2's Simple Commander API is designed specifically for using Nav2 as a Python library and provides `goToPose()`, `isTaskComplete()`, `getFeedback()`, and `getResult()` for this type of application.
+
+---
+
+## 6. RGB + Thermal Capture
+
+The mission subscribes to:
+
+```text
+/camera/image
+/thermal/image
+```
+
+After navigation, the current implementation saves:
+
+```text
+station_N_rgb.png
+station_N_thermal.png
+```
+
+The thermal visualization topic remains separate:
+
+```text
+/thermal/image_color
+```
+
+so the mission can preserve the raw thermal image while visualization is handled independently.
+
+---
+
+## 7. Inspection Run Organization
+
+Each mission execution creates a unique result directory:
+
+```text
+inspection_runs/YYYYMMDD_HHMMSS/
+```
+
+Example:
+
+```text
+inspection_runs/20261006_163232/
+```
+
+The directory contains:
+
+```text
+inspection_log.csv
+
+station_1_rgb.png
+station_1_thermal.png
+
+station_2_rgb.png
+station_2_thermal.png
+
+station_3_rgb.png
+station_3_thermal.png
+
+station_4_rgb.png
+station_4_thermal.png
+
+station_5_rgb.png
+station_5_thermal.png
+```
+
+This provides a clean separation between different inspection runs and creates the basis for later inspection-data analysis.
+
+---
+
+## 8. First Full Mission Execution
+
+The complete five-station mission was executed successfully.
+
+Command:
+
+```bash
+cd ~/ROS2_Master_Journey/AMR_inspection
+source install/setup.bash
+ros2 run amr_ix1_mission inspection_mission
+```
+
+Mission result:
+
+```text
+station_1 → navigation SUCCEEDED → RGB + thermal saved
+station_2 → navigation SUCCEEDED → RGB + thermal saved
+station_3 → navigation SUCCEEDED → RGB + thermal saved
+station_4 → navigation SUCCEEDED → RGB + thermal saved
+station_5 → navigation SUCCEEDED → RGB + thermal saved
+```
+
+Therefore, the complete high-level pipeline has been demonstrated:
+
+```text
+Waypoint configuration
+        ↓
+Nav2 goal
+        ↓
+Navigation result
+        ↓
+Image acquisition
+        ↓
+CSV logging
+        ↓
+Next station
+```
+
+---
+
+## 9. CSV Logging
+
+The mission generates:
+
+```text
+inspection_log.csv
+```
+
+with the following fields:
+
+```text
+station
+target_x
+target_y
+target_yaw
+camera_pitch
+actual_x
+actual_y
+actual_yaw
+navigation_result
+capture_result
+timestamp
+```
+
+The first complete mission successfully recorded:
+
+```text
+navigation_result = SUCCEEDED
+capture_result = saved
+```
+
+for all five stations.
+
+---
+
+## 10. Identified Issue — Pose Verification and Capture Timing
+
+The first full mission exposed an important integration issue.
+
+The current sequence is effectively:
+
+```text
+Nav2 → SUCCEEDED
+       ↓
+Immediate capture
+       ↓
+Next station
+```
+
+This is not yet sufficient for a reliable inspection system.
+
+During the first mission, the robot sometimes appeared to continue settling/rotating immediately after Nav2 reported success. This was especially noticeable during final orientation changes.
+
+The mission also failed to retrieve the actual robot pose through TF during capture:
+
+```text
+Could not read actual pose:
+"map" passed to lookupTransform argument target_frame does not exist.
+```
+
+As a result, the following CSV fields were empty during this run:
+
+```text
+actual_x
+actual_y
+actual_yaw
+```
+
+This is considered an integration issue rather than a navigation failure.
+
+The underlying Nav2 navigation action itself returned:
+
+```text
+SUCCEEDED
+```
+
+for all five stations.
+
+---
+
+## 11. Required Mission-Level Stabilization
+
+The next implementation step is to change the mission logic from:
+
+```text
+Nav2 SUCCEEDED
+      ↓
+Capture
+```
+
+to:
+
+```text
+Nav2 SUCCEEDED
+      ↓
+Wait for valid TF
+      ↓
+Read actual robot pose
+      ↓
+Check distance from target
+      ↓
+Check orientation error
+      ↓
+Check pose stability over consecutive samples
+      ↓
+Capture RGB + thermal
+      ↓
+Next station
+```
+
+The stabilization condition should be based on actual robot state rather than an arbitrary fixed delay.
+
+This is important because the purpose of the mission is inspection, so the robot must be sufficiently settled before the image and thermal data are associated with a station.
+
+---
+
+## 12. Nav2 Lifecycle Observation
+
+The mission currently calls:
+
+```python
+navigator.lifecycleShutdown()
+```
+
+at the end of execution.
+
+This explains why Nav2 and localization nodes shut down after the mission finishes.
+
+`lifecycleShutdown()` explicitly sends a shutdown request to the Nav2 lifecycle-managed nodes; therefore this behavior is expected rather than a mission crash.
+
+For the final architecture, lifecycle ownership should be reviewed so that the mission node does not unnecessarily shut down the navigation stack when the mission completes.
+
+---
+
+## 13. Current Status
+
+### Completed
+
+- [x] Created `amr_ix1_mission` package.
+- [x] Implemented waypoint recorder.
+- [x] Recorded five inspection stations.
+- [x] Added YAML-based station configuration.
+- [x] Verified all five waypoints individually with Nav2.
+- [x] Implemented mission-level navigation.
+- [x] Integrated RGB image capture.
+- [x] Integrated thermal image capture.
+- [x] Added per-run result directories.
+- [x] Added CSV inspection logging.
+- [x] Executed a complete five-station mission.
+- [x] Confirmed navigation succeeded at all five stations.
+- [x] Confirmed RGB + thermal data were saved at all five stations.
+
+### Remaining
+
+- [ ] Robust TF pose retrieval inside mission node.
+- [ ] Actual pose logging.
+- [ ] Pose tolerance verification after navigation.
+- [ ] Pose stability verification before capture.
+- [ ] Ensure robot is stationary before inspection capture.
+- [ ] Re-run the complete five-station mission after stabilization.
+- [ ] Verify resulting images against the manually tested station captures.
+- [ ] Review and finalize CSV data.
+- [ ] Review lifecycle shutdown behavior.
+- [ ] Final documentation and Git commit/push.
+
+---
+
+## Session 10 Conclusion
+
+Session 10 successfully moved AMR-IX1 from individual navigation tests toward a complete mission-level autonomous inspection architecture.
+
+The first end-to-end mission demonstrated that the robot can:
+
+```text
+Load inspection stations
+        ↓
+Navigate to each station
+        ↓
+Receive successful Nav2 results
+        ↓
+Capture RGB data
+        ↓
+Capture thermal data
+        ↓
+Save inspection results
+        ↓
+Continue to the next station
+```
+
+The main remaining issue is **not waypoint navigation itself**, but the mission-level requirement to verify the robot's final pose and stability before associating sensor data with an inspection station.
+
+Therefore, the next session will focus on **pose verification + stabilization + final validated inspection capture**, followed by final documentation and repository cleanup.
