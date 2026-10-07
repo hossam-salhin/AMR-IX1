@@ -1888,16 +1888,13 @@ For the final architecture, lifecycle ownership should be reviewed so that the m
 
 ### Remaining
 
-- [ ] Robust TF pose retrieval inside mission node.
-- [ ] Actual pose logging.
-- [ ] Pose tolerance verification after navigation.
-- [ ] Pose stability verification before capture.
-- [ ] Ensure robot is stationary before inspection capture.
-- [ ] Re-run the complete five-station mission after stabilization.
+- [ ] Investigate why Nav2 reports `SUCCEEDED` while the final measured yaw can exceed the configured yaw tolerance.
+- [ ] Verify which Nav2 Goal Checker/controller state is used to determine `SUCCEEDED`.
+- [ ] Decide whether a mission-level stabilization wait is still required before inspection capture.
+- [ ] Re-run the complete five-station mission after the final navigation/pose behavior is understood.
 - [ ] Verify resulting images against the manually tested station captures.
 - [ ] Review and finalize CSV data.
-- [ ] Review lifecycle shutdown behavior.
-- [ ] Final documentation and Git commit/push.
+- [ ] Final documentation and Git cleanup.
 
 ---
 
@@ -1926,3 +1923,154 @@ Continue to the next station
 The main remaining issue is **not waypoint navigation itself**, but the mission-level requirement to verify the robot's final pose and stability before associating sensor data with an inspection station.
 
 Therefore, the next session will focus on **pose verification + stabilization + final validated inspection capture**, followed by final documentation and repository cleanup.
+
+# Session 11 — Post-SUCCEEDED TF Stability and Final Yaw Verification
+
+### Objective
+
+Determine whether the mission Python node reads the robot pose too early after Nav2 reports `SUCCEEDED`, and verify whether the robot continues moving significantly after the goal is reported successful.
+
+A controlled experiment was added to the local mission script for **Station 1 and Station 5 only**:
+
+```text
+Nav2 Goal SUCCEEDED
+        ↓
+TF sample 0
+        ↓ 1 second
+TF sample 1
+        ↓ 1 second
+TF sample 2
+        ↓ 1 second
+TF sample 3
+        ↓
+Calculate total position/yaw change
+```
+
+`navigator.lifecycleShutdown()` was removed from the end of the mission because shutting down Nav2/AMCL would remove the `map → odom` portion of the TF chain and prevent a valid post-shutdown `map → base_footprint` measurement.
+
+### Full Mission Result
+
+The five-station mission completed successfully.
+
+All five stations reported:
+
+```text
+navigation succeeded
+RGB + thermal saved
+```
+
+### Station 1 — Post-SUCCEEDED Stability
+
+Samples:
+
+```text
+TF sample 0: (7.348, -24.693, -172.70 deg)
+TF sample 1: (7.351, -24.713, -173.33 deg)
+TF sample 2: (7.351, -24.713, -173.33 deg)
+TF sample 3: (7.351, -24.713, -173.33 deg)
+```
+
+Total change over the four samples:
+
+```text
+delta_position = 0.0198 m
+delta_yaw      = -0.623 deg
+```
+
+The robot therefore settled almost immediately after `SUCCEEDED`, with only about 2 cm and 0.6 degrees of change over the three-second observation period.
+
+Final measured pose used by the mission:
+
+```text
+actual = (7.351, -24.713, -173.33 deg)
+target = (7.561, -24.632, -177.35 deg)
+position_error = 0.225 m
+yaw_error = 4.02 deg
+```
+
+### Station 5 — Post-SUCCEEDED Stability
+
+Samples:
+
+```text
+TF sample 0: (14.189, 6.138, -173.24 deg)
+TF sample 1: (14.213, 6.209, -172.32 deg)
+TF sample 2: (14.213, 6.209, -172.32 deg)
+TF sample 3: (14.213, 6.209, -172.32 deg)
+```
+
+Total change:
+
+```text
+delta_position = 0.0750 m
+delta_yaw      = 0.920 deg
+```
+
+Most of the settling occurred within the first second; the pose remained unchanged for the following two samples.
+
+Final measured pose:
+
+```text
+actual = (14.213, 6.209, -172.32 deg)
+target = (14.199, 5.960, 177.87 deg)
+position_error = 0.250 m
+yaw_error = 9.81 deg
+```
+
+### Independent TF Verification
+
+After the mission, Station 5 was independently checked using:
+
+```bash
+ros2 run tf2_ros tf2_echo map base_footprint
+```
+
+The reported pose matched the mission measurement:
+
+```text
+Translation: [14.213, 6.209, 0.000]
+RPY: [-172.318 deg]
+```
+
+This independently confirms that the mission's TF reading was not caused by an incorrect or stale pose calculation.
+
+### Important Angle Convention
+
+The Station 5 actual yaw is reported as:
+
+```text
+-172.32 deg
+```
+
+while the target is:
+
+```text
+177.87 deg
+```
+
+These are angles on a circular domain. `-172.32 deg` is equivalent to `187.68 deg` as an orientation representation.
+
+Therefore the shortest angular difference is:
+
+```text
+187.68 - 177.87 = 9.81 deg
+```
+
+The `5.55 deg` value would only result from incorrectly treating the actual yaw as `+172.32 deg`.
+
+### Session 11 Conclusion
+
+The experiment strongly indicates that the main yaw-error issue is **not caused by the Python mission reading the pose too early after `SUCCEEDED`**.
+
+Evidence:
+
+1. Station 1 became stable after approximately one second.
+2. Station 5 became stable after approximately one second.
+3. Python and `tf2_echo` reported the same Station 5 pose.
+4. The remaining Station 5 yaw error was approximately `9.81 deg`, despite the robot already being stable.
+
+Therefore, the next investigation should focus on **why Nav2 reports `SUCCEEDED` at a pose whose measured final yaw can exceed the configured `yaw_goal_tolerance`**, rather than immediately modifying navigation parameters.
+
+No Nav2 parameters were changed during this experiment.
+
+The experimental post-`SUCCEEDED` TF measurement code was retained for reproducibility and is included in this session commit.
