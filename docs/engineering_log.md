@@ -2074,3 +2074,38 @@ Therefore, the next investigation should focus on **why Nav2 reports `SUCCEEDED`
 No Nav2 parameters were changed during this experiment.
 
 The experimental post-`SUCCEEDED` TF measurement code was retained for reproducibility and is included in this session commit.
+
+## Session 12 — Inspection Camera Lifecycle and Waypoint Recording
+**Date:** 2026-10-12
+
+### Objective
+Complete the camera stand workflow for the autonomous inspection mission and
+support recording station-specific camera pitch alongside robot waypoints.
+
+### Changes
+- `inspection_mission.py`: initialize the camera stand to neutral (`0.0 rad`)
+  after Nav2 becomes active; set the configured camera pitch at each station;
+  verify pitch using `/joint_states`; include actual pitch and pitch error in
+  the inspection CSV; return the camera stand to neutral after the station loop.
+- `waypoint_recorder.py`: read camera stand joint feedback and allow the user
+  to enter a camera pitch in degrees when recording a waypoint; save the
+  measured pitch in radians in the waypoint output.
+- `inspection_waypoints.yaml`: retain camera pitch values for all six stations.
+  Stations 1–5 use `0.0 rad`; station 6 uses `-0.555723 rad`.
+
+### Verification
+- Python syntax checks passed for both modified Python files.
+- YAML parsing passed and confirmed six stations.
+- `git diff --check` passed.
+- Runtime mission `20261012_020829` completed all six stations successfully.
+- RGB and thermal images were saved at all six stations.
+- Station 6 requested pitch: `-0.555723 rad` (`-31.84 deg`).
+- Station 6 measured pitch: `-0.548216 rad` (`-31.41 deg`), approximately
+  `0.43 deg` error.
+- Runtime logs confirmed the neutral command at mission start and the return
+  to neutral at mission end.
+
+### Decision
+Accept the camera lifecycle and waypoint camera-pitch changes as the Session 12
+simulation baseline. This run verifies the normal mission-completion path;
+neutralization after an unexpected exception has not been verified.

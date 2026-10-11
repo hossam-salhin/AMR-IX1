@@ -1,3 +1,4 @@
+from ament_index_python.packages import get_package_share_directory
 #!/usr/bin/env python3
 
 import csv
@@ -13,11 +14,18 @@ import yaml
 from cv_bridge import CvBridge
 from geometry_msgs.msg import PoseStamped
 from nav2_simple_commander.robot_navigator import BasicNavigator, TaskResult
-from rclpy.duration import Duration
 from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
-from sensor_msgs.msg import Image
+from sensor_msgs.msg import Image, JointState
+from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 from tf2_ros import Buffer, TransformListener
+
+CAMERA_JOINT = 'cam_stand_joint'
+CAMERA_CONTROLLER_TOPIC = '/cam_stand_controller/joint_trajectory'
+CAMERA_MIN_PITCH = -0.7854
+CAMERA_MAX_PITCH = 0.2
+CAMERA_COMMAND_DURATION = 2.0
+CAMERA_TOLERANCE = 0.01
 
 
 class InspectionMission(Node):
@@ -31,18 +39,20 @@ class InspectionMission(Node):
         self.rgb_time = None
         self.thermal_time = None
 
-        self.create_subscription(
-            Image,
-            '/camera/image',
-            self.rgb_callback,
-            10
-        )
+        self.latest_camera_pitch = None
 
         self.create_subscription(
-            Image,
-            '/thermal/image',
-            self.thermal_callback,
-            10
+            Image, '/camera/image', self.rgb_callback, 10
+        )
+        self.create_subscription(
+            Image, '/thermal/image', self.thermal_callback, 10
+        )
+        self.create_subscription(
+            JointState, '/joint_states', self.camera_state_callback, 10
+        )
+
+        self.camera_command_pub = self.create_publisher(
+            JointTrajectory, CAMERA_CONTROLLER_TOPIC, 10
         )
 
         self.tf_buffer = Buffer()
@@ -55,6 +65,76 @@ class InspectionMission(Node):
     def thermal_callback(self, msg):
         self.latest_thermal = msg
         self.thermal_time = self.get_clock().now()
+
+    def camera_state_callback(self, msg):
+        if CAMERA_JOINT not in msg.name:
+            return
+
+        index = msg.name.index(CAMERA_JOINT)
+
+        if index < len(msg.position):
+            self.latest_camera_pitch = float(msg.position[index])
+
+    def get_camera_pitch(self, timeout_sec=3.0):
+        start = time.monotonic()
+
+        while time.monotonic() - start < timeout_sec:
+            if self.latest_camera_pitch is not None:
+                return self.latest_camera_pitch
+
+            time.sleep(0.05)
+
+        raise RuntimeError(
+            f'Joint state for {CAMERA_JOINT} is not available'
+        )
+
+    def set_camera_pitch(self, pitch, timeout_sec=8.0):
+        if not CAMERA_MIN_PITCH <= pitch <= CAMERA_MAX_PITCH:
+            raise ValueError(
+                f'Camera pitch must be between '
+                f'{CAMERA_MIN_PITCH:.4f} and {CAMERA_MAX_PITCH:.4f} rad'
+            )
+
+        start = time.monotonic()
+
+        while (
+            self.camera_command_pub.get_subscription_count() == 0
+            and time.monotonic() - start < 3.0
+        ):
+            time.sleep(0.05)
+
+        if self.camera_command_pub.get_subscription_count() == 0:
+            raise RuntimeError(
+                f'No subscriber found on {CAMERA_CONTROLLER_TOPIC}'
+            )
+
+        trajectory = JointTrajectory()
+        trajectory.joint_names = [CAMERA_JOINT]
+
+        point = JointTrajectoryPoint()
+        point.positions = [pitch]
+        point.time_from_start = rclpy.duration.Duration(
+            seconds=CAMERA_COMMAND_DURATION
+        ).to_msg()
+
+        trajectory.points = [point]
+        self.camera_command_pub.publish(trajectory)
+
+        start = time.monotonic()
+
+        while time.monotonic() - start < timeout_sec:
+            if (
+                self.latest_camera_pitch is not None
+                and abs(self.latest_camera_pitch - pitch) <= CAMERA_TOLERANCE
+            ):
+                return self.latest_camera_pitch
+
+            time.sleep(0.05)
+
+        raise RuntimeError(
+            f'Camera stand did not reach target {pitch:.4f} rad '
+            f'within {timeout_sec:.1f} s'
+        )
 
     def get_robot_pose(self, timeout_sec=3.0):
         start = time.monotonic()
@@ -83,7 +163,7 @@ class InspectionMission(Node):
                 return x, y, yaw
 
         raise RuntimeError(
-            "TF map -> base_footprint not available within timeout"
+            'TF map -> base_footprint not available within timeout'
         )
 
     @staticmethod
@@ -149,13 +229,10 @@ class InspectionMission(Node):
             )
 
             rgb_path = os.path.join(
-                output_dir,
-                f'{station_name}_rgb.png'
+                output_dir, f'{station_name}_rgb.png'
             )
-
             thermal_path = os.path.join(
-                output_dir,
-                f'{station_name}_thermal.png'
+                output_dir, f'{station_name}_thermal.png'
             )
 
             if not cv2.imwrite(rgb_path, rgb):
@@ -185,14 +262,9 @@ class InspectionMission(Node):
 
 
 def load_waypoints():
-    package_root = os.path.dirname(
-        os.path.dirname(os.path.abspath(__file__))
-    )
-
+    package_root = get_package_share_directory('amr_ix1_mission')
     yaml_path = os.path.join(
-        package_root,
-        'config',
-        'inspection_waypoints.yaml'
+        package_root, 'config', 'inspection_waypoints.yaml'
     )
 
     with open(yaml_path, 'r', encoding='utf-8') as file:
@@ -230,10 +302,7 @@ def main():
 
     os.makedirs(output_dir, exist_ok=True)
 
-    csv_path = os.path.join(
-        output_dir,
-        'inspection_log.csv'
-    )
+    csv_path = os.path.join(output_dir, 'inspection_log.csv')
 
     with open(csv_path, 'w', newline='', encoding='utf-8') as csv_file:
         writer = csv.writer(csv_file)
@@ -244,6 +313,8 @@ def main():
             'target_y',
             'target_yaw',
             'camera_pitch',
+            'actual_camera_pitch',
+            'camera_pitch_error_rad',
             'actual_x',
             'actual_y',
             'actual_yaw',
@@ -256,6 +327,8 @@ def main():
         ])
 
         navigator.waitUntilNav2Active()
+        mission.get_logger().info('Setting camera stand to neutral at mission start')
+        mission.set_camera_pitch(0.0)
 
         mission.get_logger().info(
             f'Starting inspection mission: {timestamp}'
@@ -272,9 +345,7 @@ def main():
             )
 
             goal = mission.make_pose(
-                target_x,
-                target_y,
-                target_yaw
+                target_x, target_y, target_yaw
             )
 
             navigator.goToPose(goal)
@@ -301,6 +372,8 @@ def main():
                     '',
                     '',
                     '',
+                    '',
+                    '',
                     str(result),
                     'not_attempted',
                     datetime.now().isoformat()
@@ -312,59 +385,53 @@ def main():
                 f'{station_name}: navigation succeeded'
             )
 
-            # Experimental post-SUCCEEDED pose stability check.
-            # Only Station 1 and Station 5 are measured.
-            if station_name in ('station_1', 'station_5'):
+            try:
                 mission.get_logger().info(
-                    f'{station_name}: starting post-SUCCEEDED TF stability check'
+                    f'{station_name}: setting camera pitch to '
+                    f'{camera_pitch:.6f} rad '
+                    f'({math.degrees(camera_pitch):.2f} deg)'
                 )
 
-                samples = []
+                actual_camera_pitch = mission.set_camera_pitch(
+                    camera_pitch
+                )
 
-                for sample_idx in range(4):
-                    try:
-                        sample_x, sample_y, sample_yaw = mission.get_robot_pose()
+                camera_pitch_error_rad = abs(
+                    actual_camera_pitch - camera_pitch
+                )
 
-                        samples.append(
-                            (sample_x, sample_y, sample_yaw)
-                        )
+                mission.get_logger().info(
+                    f'{station_name}: camera pitch reached '
+                    f'{actual_camera_pitch:.6f} rad '
+                    f'({math.degrees(actual_camera_pitch):.2f} deg), '
+                    f'error={math.degrees(camera_pitch_error_rad):.2f} deg'
+                )
 
-                        mission.get_logger().info(
-                            f'{station_name}: '
-                            f'TF sample {sample_idx}: '
-                            f'({sample_x:.3f}, {sample_y:.3f}, '
-                            f'{math.degrees(sample_yaw):.2f} deg)'
-                        )
+            except Exception as exc:
+                mission.get_logger().error(
+                    f'{station_name}: camera stand failed: {exc}'
+                )
 
-                        if sample_idx < 3:
-                            time.sleep(1.0)
-
-                    except Exception as exc:
-                        mission.get_logger().warning(
-                            f'{station_name}: '
-                            f'could not read TF sample {sample_idx}: {exc}'
-                        )
-
-                if len(samples) >= 2:
-                    first_x, first_y, first_yaw = samples[0]
-                    last_x, last_y, last_yaw = samples[-1]
-
-                    delta_position = math.hypot(
-                        last_x - first_x,
-                        last_y - first_y
-                    )
-
-                    delta_yaw = math.atan2(
-                        math.sin(last_yaw - first_yaw),
-                        math.cos(last_yaw - first_yaw)
-                    )
-
-                    mission.get_logger().info(
-                        f'{station_name}: post-SUCCEEDED change over '
-                        f'{len(samples)} samples: '
-                        f'delta_position={delta_position:.4f} m, '
-                        f'delta_yaw={math.degrees(delta_yaw):.3f} deg'
-                    )
+                writer.writerow([
+                    station_name,
+                    target_x,
+                    target_y,
+                    target_yaw,
+                    camera_pitch,
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    'SUCCEEDED',
+                    f'camera_stand_failed: {exc}',
+                    datetime.now().isoformat()
+                ])
+                csv_file.flush()
+                continue
 
             try:
                 actual_x, actual_y, actual_yaw = mission.get_robot_pose()
@@ -401,8 +468,7 @@ def main():
 
             if capture_ok:
                 capture_result, capture_error = mission.save_images(
-                    output_dir,
-                    station_name
+                    output_dir, station_name
                 )
 
                 if capture_result:
@@ -427,6 +493,8 @@ def main():
                 target_y,
                 target_yaw,
                 camera_pitch,
+                actual_camera_pitch,
+                camera_pitch_error_rad,
                 actual_x,
                 actual_y,
                 actual_yaw,
@@ -439,6 +507,12 @@ def main():
             ])
 
             csv_file.flush()
+
+    try:
+        mission.get_logger().info('Returning camera stand to neutral at mission end')
+        mission.set_camera_pitch(0.0)
+    except Exception as exc:
+        mission.get_logger().error(f'Failed to return camera stand to neutral: {exc}')
 
     mission.get_logger().info(
         f'Inspection mission finished. Results: {output_dir}'

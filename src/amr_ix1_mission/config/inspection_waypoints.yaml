@@ -28,3 +28,9 @@ stations:
     y: 5.960183
     yaw: 3.104432
     camera_pitch: 0.0
+
+  station_6:
+    x: 30.966364
+    y: -6.718832
+    yaw: -3.112267
+    camera_pitch: -0.555723
