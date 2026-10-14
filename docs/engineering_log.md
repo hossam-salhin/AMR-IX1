@@ -2161,3 +2161,45 @@ The factory environment was simplified, simulation performance improved substant
 
 ### Next Step
 Review the changed SDF, physics configuration, map artifacts, ROS 2 Bag artifacts, and engineering log before committing Session 13.
+
+## Session 14 — SLAM Video & Project Showcase
+**Date:** 2026-10-14
+
+### Objective
+Prepare and publish a technical progress update demonstrating AMR-IX1 SLAM mapping in the simulated factory environment.
+
+### Work Completed
+- Replayed the recorded ROS 2 Bag from Session 13.
+- Opened RViz and displayed the recorded map and robot model using the existing robot description launch file.
+- Confirmed that the recorded `/joint_states` topic was publishing at approximately 46 Hz during playback.
+- Reviewed the recorded data and confirmed that the Bag contains `/lidar`, `/tf`, `/clock`, `/joint_states`, and `/map` topics.
+- Edited the screen recording to include:
+  - A factory environment overview with the robot moving through the simulation.
+  - Selected SLAM mapping footage, with the mapping segment sped up.
+  - A final view of the generated map in RViz.
+- Removed unnecessary footage and audio.
+- Exported the final video as `AMR_SLAM_v2.mp4`.
+
+### Video Export
+- Resolution: 1280 × 720 (720p).
+- Frame rate: 30 FPS.
+- Video codec: H.264.
+- Pixel format: YUV420p.
+- Reported video bitrate: approximately 682 kbps.
+- Duration of the original edited export (`AMR_SLAM.mp4`): 169.667 seconds. The final version's duration was not separately verified in this session.
+
+### LinkedIn Publication
+- Published a project progress update introducing the SLAM mapping process in AMR-IX1.
+- Included a short project overview and a link to the GitHub repository.
+- Kept the video silent, without background music.
+- Positioned the publication as a follow-up to the initial AMR-IX1 introduction post.
+
+### Results
+- The SLAM video was exported and published on LinkedIn.
+- The publication focuses on the simulated factory, the mapping process, and the resulting map in RViz.
+- No new navigation performance tests or physical robot tests were conducted during this session.
+
+### Next Steps
+- Prepare a separate video demonstrating Nav2 autonomous navigation and waypoint-based inspection missions.
+- Publish the navigation update in approximately 3–5 days.
+- Continue documenting the transition from simulation to the physical AMR-IX1 platform.
