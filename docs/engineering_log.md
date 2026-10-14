@@ -2109,3 +2109,55 @@ support recording station-specific camera pitch alongside robot waypoints.
 Accept the camera lifecycle and waypoint camera-pitch changes as the Session 12
 simulation baseline. This run verifies the normal mission-completion path;
 neutralization after an unexpected exception has not been verified.
+
+## Session 13 — Factory SDF Optimization, Physics Timestep & SLAM Validation
+
+**Date:** 2026-10-14
+
+### Objective
+Improve Gazebo Fortress simulation performance while preserving factory geometry relevant to AMR navigation, then validate the updated environment through SLAM and navigation testing.
+
+### Engineering Problem
+The factory simulation was running below the desired real-time performance. Initial simplification of the factory SDF produced some improvement, but investigation of the physics configuration revealed a substantially larger performance effect from the physics maximum step size.
+
+### Changes
+- Simplified the factory SDF from approximately 4,000 lines to approximately 1,500 lines.
+- Removed collision geometry for selected elevated pipes considered irrelevant to the robot's collision envelope.
+- Reduced wall collision height from 6 m to 3 m while retaining the original visual geometry.
+- Consolidated adjacent wall collision geometry into larger collision blocks.
+- Removed selected columns from the collision environment while retaining important columns inside rooms.
+- Tested physics `max_step_size` values of `0.001`, `0.002`, and `0.01` seconds.
+- Selected `max_step_size = 0.002` seconds as the current configuration.
+
+### Evidence and Validation
+- The simplified factory map remained visually consistent with the original factory layout.
+- The resulting SLAM map represented the main walls, corridors, rooms, columns, and internal machinery.
+- Small machinery features appeared small because of the overall map scale; they corresponded to objects in the factory.
+- Observed RTF was approximately 97–100% with `max_step_size = 0.002` seconds.
+- Increasing `max_step_size` to `0.01` seconds also produced near-real-time performance.
+- Reverting to `0.001` seconds reproduced the earlier performance problem, supporting the conclusion that physics timestep size is a major performance factor.
+- A `NavigateToPose` goal was tested against the updated map, and the user reported that the map was working very well.
+
+### Engineering Interpretation
+The physics timestep size had a substantial observed effect on simulation performance. Increasing the step size reduces the number of physics updates required per simulated second, lowering computational load but potentially affecting simulation fidelity.
+
+The value `0.002` seconds is retained as the current engineering choice because it provided near-real-time performance without adopting the larger `0.01`-second step.
+
+SDF simplification also reduces model complexity, but the observed performance results do not establish that it was the primary source of improvement.
+
+### Decision
+- Keep the simplified factory SDF.
+- Keep `max_step_size = 0.002` seconds as the current configuration.
+- Retain the newly generated SLAM map for subsequent navigation validation.
+- Avoid further performance tuning unless new evidence identifies a specific problem.
+
+### Remaining Verification
+- Confirm that the final collision geometry prevents passage through all relevant walls and columns.
+- Continue validating navigation across representative corridors and rooms.
+- Confirm the ROS 2 Bag recording is complete and usable if it is to be included in the session deliverables.
+
+### Session Outcome
+The factory environment was simplified, simulation performance improved substantially after adjusting the physics timestep, and a new SLAM map consistent with the factory layout was generated. The updated environment is ready for continued navigation validation.
+
+### Next Step
+Review the changed SDF, physics configuration, map artifacts, ROS 2 Bag artifacts, and engineering log before committing Session 13.

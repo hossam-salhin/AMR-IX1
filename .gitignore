@@ -46,3 +46,6 @@ frames_*.pdf
 
 inspection_logs/
 inspection_runs/
+
+# ROS 2 bag recordings (large session data)
+bags/
