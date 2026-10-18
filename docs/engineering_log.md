@@ -2203,3 +2203,67 @@ Prepare and publish a technical progress update demonstrating AMR-IX1 SLAM mappi
 - Prepare a separate video demonstrating Nav2 autonomous navigation and waypoint-based inspection missions.
 - Publish the navigation update in approximately 3–5 days.
 - Continue documenting the transition from simulation to the physical AMR-IX1 platform.
+
+## Session 15 — Mission Diagnostics & Final Goal Orientation Investigation
+
+**Date:** 2026-10-18
+
+### Objective
+Improve inspection mission diagnostics, separate waypoint configurations for the main and testing maps, and investigate inconsistent final robot orientation after Nav2 reports goal completion.
+
+### Engineering Problem
+Mission-level logs showed discrepancies between Nav2 goal completion and the robot's measured final pose, particularly in yaw. The investigation required recording TF data around goal completion and evaluating a modified goal-checking implementation.
+
+### Changes
+- Added the `amr_ix1_diagnostics` ROS 2 Python package.
+- Implemented `tf_logger.py` to record timestamped transforms from `map` to `base_footprint`.
+- Separated waypoint configurations into:
+  - `inspection_waypoints_main_map.yaml`
+  - `inspection_waypoints_testing_map.yaml`
+- Updated `inspection_mission.py` to load the main-map waypoint configuration.
+- Updated `setup.py` to install both waypoint configuration files.
+- Updated the Nav2 goal checker configuration:
+  - Plugin: `nav2_controller::StoppedGoalChecker`
+  - `xy_goal_tolerance`: `0.25`
+  - `yaw_goal_tolerance`: `0.10`
+  - `stateful`: `false`
+  - `trans_stopped_velocity`: `0.25`
+  - `rot_stopped_velocity`: `0.25`
+- Added `tf_logs/` and the local backup of `nav2_params.yaml` to `.gitignore`.
+
+### Evidence and Validation
+- The diagnostic package was discovered successfully by `colcon list`.
+- The `amr_ix1_diagnostics` and `amr_ix1_mission` packages built successfully.
+- The complete workspace build finished successfully with all seven packages.
+- Two post-change mission runs were reviewed:
+  - Mission `20261018_160715`: reported post-success yaw errors ranged from approximately 1.13° to 5.31°.
+  - Mission `20261018_162430`: reported post-success yaw errors ranged from approximately 1.42° to 5.01°.
+- All reported post-success yaw errors in these two runs were below the configured `yaw_goal_tolerance` equivalent of approximately 5.73°.
+- TF traces were recorded to support further investigation of the robot pose around goal completion.
+
+### Engineering Interpretation
+The two reviewed mission runs showed improved agreement between the reported final yaw and the configured yaw tolerance. However, post-success pose measurements do not necessarily represent the exact pose evaluated internally by the goal checker at the instant of completion.
+
+A modified `nav2_controller` implementation was tested separately in an external workspace. The modification sets the stored goal pose timestamp to zero before transforming it, so the transform uses the latest available TF data. The observed mission results were encouraging, but the underlying cause has not been conclusively established.
+
+The modified controller source has not yet been integrated into the AMR-IX1 repository as part of this session.
+
+### Decision
+- Keep the separate main-map and testing-map waypoint configurations.
+- Keep the new mission diagnostic package.
+- Retain the current `StoppedGoalChecker` configuration for further validation.
+- Preserve TF diagnostic traces locally while excluding them from normal Git tracking.
+- Keep the modified `nav2_controller` integration as a separate task until the source, patch, and reproducible build procedure are reviewed.
+
+### Remaining Verification
+- Integrate the modified `nav2_controller` into the project in a reproducible way.
+- Build and test the workspace using the project-local controller source.
+- Re-run the inspection mission and compare goal-checker results with TF-based pose measurements.
+- Investigate the remaining XY discrepancies observed in some post-success mission measurements.
+- Confirm the intended use and launch procedure for both waypoint configurations.
+
+### Session Outcome
+The mission diagnostics package and separate waypoint configurations were added, the Nav2 goal checker configuration was updated, and the complete seven-package workspace build succeeded. Two post-change mission runs showed final yaw errors within the configured tolerance, while further controller-level validation remains necessary.
+
+### Next Step
+Review and integrate the modified `nav2_controller` source, establish a reproducible project build, and repeat the inspection mission before treating the final-orientation issue as resolved.

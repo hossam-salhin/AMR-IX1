@@ -49,3 +49,9 @@ inspection_runs/
 
 # ROS 2 bag recordings (large session data)
 bags/
+
+# Local TF diagnostic traces
+tf_logs/
+
+# Local backup of Nav2 parameters
+src/amr_ix1_navigation/config/nav2_params.yaml.pre_stopped_goal_checker

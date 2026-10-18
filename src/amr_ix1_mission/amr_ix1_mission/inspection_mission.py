@@ -264,7 +264,7 @@ class InspectionMission(Node):
 def load_waypoints():
     package_root = get_package_share_directory('amr_ix1_mission')
     yaml_path = os.path.join(
-        package_root, 'config', 'inspection_waypoints.yaml'
+        package_root, 'config', 'inspection_waypoints_main_map.yaml'
     )
 
     with open(yaml_path, 'r', encoding='utf-8') as file:
