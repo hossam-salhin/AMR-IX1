@@ -2267,3 +2267,44 @@ The mission diagnostics package and separate waypoint configurations were added,
 
 ### Next Step
 Review and integrate the modified `nav2_controller` source, establish a reproducible project build, and repeat the inspection mission before treating the final-orientation issue as resolved.
+
+## Session 16 — Controller Timestamp Integration and XY Investigation
+**Date:** 2026-10-18
+
+### Objective
+Integrate the modified Nav2 controller into the AMR-IX1 workspace, validate the timestamp change through repeated inspection missions, and identify the next investigation target.
+
+### Controller Change
+- Integrated the modified `nav2_controller` source into `src/nav2_controller/`.
+- Updated `ControllerServer::isGoalReached()` to set a copy of the stored goal pose timestamp to zero before transforming it, requesting the latest available TF.
+- Built `nav2_controller` successfully using the project workspace.
+- Verified that `ros2 pkg prefix nav2_controller` resolves to the project-local installation.
+- Verified that the running Nav2 component container loaded `libcontroller_server_core.so` and the goal-checker libraries from `AMR_inspection/install/nav2_controller/`.
+
+### Evidence and Validation
+Four inspection mission runs were reviewed: two using the modified controller in the external workspace before integration, followed by two using the project-local controller after integration.
+
+- External-workspace runs:
+  - Mission `20261018_160715`: reported yaw errors ranged from approximately 1.13° to 5.31°.
+  - Mission `20261018_162430`: reported yaw errors ranged from approximately 1.42° to 5.01°.
+- Project-workspace runs:
+  - Mission `20261018_180428`: reported yaw errors ranged from approximately 1.81° to 5.30°.
+  - Mission `20261018_181748`: reported yaw errors ranged from approximately 3.03° to 4.85°.
+- All eight waypoints in all four runs had reported post-success yaw errors below 5.73°, equivalent to `yaw_goal_tolerance: 0.10` rad.
+- All four inspection missions completed successfully.
+
+### Engineering Interpretation
+Repeated results support the effectiveness of the timestamp modification in the tested simulation scenarios. The exact root cause has not been conclusively isolated, and post-success mission pose measurements may not exactly match the pose evaluated internally by the goal checker at the instant of completion.
+
+### Decision
+- Retain the project-local modified `nav2_controller`.
+- Stop further yaw-parameter tuning for now.
+- Treat the yaw improvement as experimentally validated in the tested simulation scenarios, without claiming that the root cause is conclusively proven.
+- Investigate the remaining XY discrepancy as a separate task.
+
+### Next Investigation — XY Goal Completion
+- Determine the exact goal-checker implementation and parameters loaded at runtime.
+- Verify how XY tolerance is evaluated and whether success is expected immediately once the robot enters the configured tolerance region.
+- Compare the robot pose used by the goal checker at completion with the mission's post-success TF measurement.
+- Investigate why some post-success position errors slightly exceed the configured `xy_goal_tolerance: 0.25` m.
+- Do not change controller or goal-checker parameters until evidence identifies the source of the discrepancy.
