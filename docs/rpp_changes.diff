@@ -1,0 +1,99 @@
+diff -ru /tmp/nav2_upstream/nav2_regulated_pure_pursuit_controller/include/nav2_regulated_pure_pursuit_controller/regulated_pure_pursuit_controller.hpp src/nav2_regulated_pure_pursuit_controller/include/nav2_regulated_pure_pursuit_controller/regulated_pure_pursuit_controller.hpp
+--- /tmp/nav2_upstream/nav2_regulated_pure_pursuit_controller/include/nav2_regulated_pure_pursuit_controller/regulated_pure_pursuit_controller.hpp	2026-10-20 01:00:32.792856928 +0300
++++ src/nav2_regulated_pure_pursuit_controller/include/nav2_regulated_pure_pursuit_controller/regulated_pure_pursuit_controller.hpp	2026-10-20 00:53:25.702807691 +0300
+@@ -162,7 +162,7 @@
+    * @param carrot_pose current lookahead point
+    * @return Whether should rotate to goal heading
+    */
+-  bool shouldRotateToGoalHeading(const geometry_msgs::msg::PoseStamped & carrot_pose);
++  bool shouldRotateToGoalHeading(const geometry_msgs::msg::PoseStamped & goal_pose);
+
+   /**
+    * @brief Create a smooth and kinematically smoothed rotation command
+@@ -304,6 +304,8 @@
+   double max_angular_accel_;
+   double rotate_to_heading_min_angle_;
+   double goal_dist_tol_;
++  double goal_heading_dist_tol_;
++  bool rotating_to_goal_heading_{false};
+   bool allow_reversing_;
+   double max_robot_pose_search_dist_;
+   bool use_interpolation_;
+diff -ru /tmp/nav2_upstream/nav2_regulated_pure_pursuit_controller/src/regulated_pure_pursuit_controller.cpp src/nav2_regulated_pure_pursuit_controller/src/regulated_pure_pursuit_controller.cpp
+--- /tmp/nav2_upstream/nav2_regulated_pure_pursuit_controller/src/regulated_pure_pursuit_controller.cpp	2026-10-20 01:00:32.793856934 +0300
++++ src/nav2_regulated_pure_pursuit_controller/src/regulated_pure_pursuit_controller.cpp	2026-10-20 00:53:25.703807693 +0300
+@@ -108,6 +108,8 @@
+   declare_parameter_if_not_declared(
+     node, plugin_name_ + ".rotate_to_heading_min_angle", rclcpp::ParameterValue(0.785));
+   declare_parameter_if_not_declared(
++    node, plugin_name_ + ".goal_heading_dist_tol", rclcpp::ParameterValue(0.10));
++  declare_parameter_if_not_declared(
+     node, plugin_name_ + ".max_angular_accel", rclcpp::ParameterValue(3.2));
+   declare_parameter_if_not_declared(
+     node, plugin_name_ + ".allow_reversing", rclcpp::ParameterValue(false));
+@@ -167,6 +169,7 @@
+     regulated_linear_scaling_min_speed_);
+   node->get_parameter(plugin_name_ + ".use_rotate_to_heading", use_rotate_to_heading_);
+   node->get_parameter(plugin_name_ + ".rotate_to_heading_min_angle", rotate_to_heading_min_angle_);
++  node->get_parameter(plugin_name_ + ".goal_heading_dist_tol", goal_heading_dist_tol_);
+   node->get_parameter(plugin_name_ + ".max_angular_accel", max_angular_accel_);
+   node->get_parameter(plugin_name_ + ".allow_reversing", allow_reversing_);
+   node->get_parameter("controller_frequency", control_frequency);
+@@ -336,10 +339,19 @@
+
+   linear_vel = desired_linear_vel_;
+
++    // Transform the actual final goal into the robot base frame at the CURRENT time.
++  geometry_msgs::msg::PoseStamped final_goal = global_plan_.poses.back();
++  final_goal.header.frame_id = global_plan_.header.frame_id;
++  final_goal.header.stamp = builtin_interfaces::msg::Time();   // robot pose stamp, not the plan stamp
++  geometry_msgs::msg::PoseStamped goal_pose;
++  if (!transformPose(costmap_ros_->getBaseFrameID(), final_goal, goal_pose)) {
++    throw nav2_core::PlannerException("Failed to transform final goal pose to base frame.");
++  }
++
+   // Make sure we're in compliance with basic constraints
+   double angle_to_heading;
+-  if (shouldRotateToGoalHeading(carrot_pose)) {
+-    double angle_to_goal = tf2::getYaw(transformed_plan.poses.back().pose.orientation);
++  if (shouldRotateToGoalHeading(goal_pose)) {
++    double angle_to_goal = tf2::getYaw(goal_pose.pose.orientation);
+     rotateToHeading(linear_vel, angular_vel, angle_to_goal, speed);
+   } else if (shouldRotateToPath(carrot_pose, angle_to_heading)) {
+     rotateToHeading(linear_vel, angular_vel, angle_to_heading, speed);
+@@ -376,11 +388,18 @@
+ }
+
+ bool RegulatedPurePursuitController::shouldRotateToGoalHeading(
+-  const geometry_msgs::msg::PoseStamped & carrot_pose)
++  const geometry_msgs::msg::PoseStamped & goal_pose)
+ {
+-  // Whether we should rotate robot to goal heading
+-  double dist_to_goal = std::hypot(carrot_pose.pose.position.x, carrot_pose.pose.position.y);
+-  return use_rotate_to_heading_ && dist_to_goal < goal_dist_tol_;
++  if (!use_rotate_to_heading_) {
++    return false;
++  }
++  const double dist_to_goal = std::hypot(goal_pose.pose.position.x, goal_pose.pose.position.y);
++  if (dist_to_goal < goal_heading_dist_tol_) {
++    rotating_to_goal_heading_ = true;           // دخل منطقة 0.10 → ابدأ لف
++  } else if (dist_to_goal > goal_dist_tol_) {
++    rotating_to_goal_heading_ = false;          // خرج من الـ tolerance (0.25) → ارجع قرّب
++  }
++  return rotating_to_goal_heading_;
+ }
+
+ void RegulatedPurePursuitController::rotateToHeading(
+@@ -874,6 +893,12 @@
+         max_angular_accel_ = parameter.as_double();
+       } else if (name == plugin_name_ + ".rotate_to_heading_min_angle") {
+         rotate_to_heading_min_angle_ = parameter.as_double();
++      } else if (name == plugin_name_ + ".goal_heading_dist_tol") {
++        if (parameter.as_double() <= 0.0) {
++          RCLCPP_WARN(logger_, "goal_heading_dist_tol must be > 0. Ignoring parameter update.");
++          continue;
++        }
++        goal_heading_dist_tol_ = parameter.as_double();
+       }
+     } else if (type == ParameterType::PARAMETER_BOOL) {
+       if (name == plugin_name_ + ".use_velocity_scaled_lookahead_dist") {

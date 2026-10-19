@@ -4,6 +4,7 @@ from launch import LaunchDescription
 from launch.actions import IncludeLaunchDescription, DeclareLaunchArgument
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
+from nav2_common.launch import RewrittenYaml
 
 
 def generate_launch_description():
@@ -12,8 +13,14 @@ def generate_launch_description():
 
     map_file = os.path.join(pkg_nav, 'maps', 'Main_AMR_IX1_map.yaml')
     params_file = os.path.join(pkg_nav, 'config', 'nav2_params.yaml')
+    bt_file = os.path.join(pkg_nav, 'behavior_trees', 'my_custom_bt.xml')
 
     use_sim_time = DeclareLaunchArgument('use_sim_time', default_value='true')
+
+    configured_params = RewrittenYaml(
+        source_file=params_file,
+        param_rewrites={'default_nav_to_pose_bt_xml': bt_file},
+    )
 
     nav2 = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
@@ -21,7 +28,7 @@ def generate_launch_description():
         ),
         launch_arguments={
             'map': map_file,
-            'params_file': params_file,
+            'params_file': configured_params,
             'use_sim_time': LaunchConfiguration('use_sim_time'),
             'autostart': 'true',
         }.items(),

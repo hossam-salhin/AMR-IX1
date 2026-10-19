@@ -7,7 +7,7 @@ bt_navigator:
     bt_loop_duration: 10
     default_server_timeout: 20
     wait_for_service_timeout: 1000
-    default_nav_to_pose_bt_xml: '/home/hossam/ROS2_Master_Journey/AMR_inspection/src/amr_ix1_navigation/behavior_trees/my_custom_bt.xml'
+    default_nav_to_pose_bt_xml: ''
     plugin_lib_names:
       - nav2_compute_path_to_pose_action_bt_node
       - nav2_compute_path_through_poses_action_bt_node
@@ -92,13 +92,13 @@ controller_server:
       lookahead_dist: 0.5
       min_lookahead_dist: 0.3
       max_lookahead_dist: 0.8
-      min_approach_linear_velocity: 0.05
       use_velocity_scaled_lookahead_dist: false
       min_turning_radius: 0.0
       use_rotate_to_heading: true
       rotate_to_heading_angular_vel: 0.3
       max_angular_accel: 2.0
       rotate_to_heading_min_angle: 0.78
+      goal_heading_dist_tol: 0.10
 
 local_costmap:
   local_costmap:

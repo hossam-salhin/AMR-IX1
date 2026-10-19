@@ -1442,8 +1442,8 @@ The AMR-IX1 thermal pipeline can now:
 
 # Session 10 — Mission-Level Inspection Pipeline
 
-**Date:** 2026-10-06  
-**Project:** AMR-IX1  
+**Date:** 2026-10-06
+**Project:** AMR-IX1
 **Focus:** Mission-level waypoint navigation, inspection capture, and data logging
 
 ---
@@ -2359,3 +2359,47 @@ This experiment does not independently prove that the controller modification ca
 
 ### Session Outcome
 The project-local controller built successfully and the cell-centered inspection mission completed all eight stations in simulation. The results support using consistent map-cell-center target coordinates for the current workflow. TF failure handling and isolated parameter validation remain outstanding.
+
+## RPP Source Diff Reference
+- **Reference:** `docs/rpp_changes.diff`
+- **Purpose:** Records the differences between the project-local `nav2_regulated_pure_pursuit_controller` package and the upstream Navigation2 Humble branch used for comparison.
+- **Version check:** Both local and upstream `package.xml` report version `1.1.20`. The installed Debian package reports `1.1.20-1jammy.20260908.005527`.
+- **Scope:** The diff contains changes in the RPP controller header and implementation source. Review this file alongside the source before attributing behavior to a specific modification.
+- **Caution:** The diff is a comparison against the checked-out upstream Humble branch, not a complete record of the package's original provenance or a substitute for reviewing the full source history.
+
+## Session 18 — RPP Final-Heading Validation and Portable BT Configuration
+
+### RPP implementation
+- Added `goal_heading_dist_tol: 0.10` to the project-local Regulated Pure Pursuit controller.
+- Added a hysteresis latch for final-heading rotation: rotation begins inside the configured heading-distance threshold and exits when the robot moves beyond `goal_dist_tol_`.
+- Final-goal heading is calculated from the transformed final goal pose rather than the local lookahead carrot.
+- The final-goal transform uses the latest available TF by setting the transform input timestamp to zero.
+- The local controller package and its source comparison are retained in `src/nav2_regulated_pure_pursuit_controller/` and `docs/rpp_changes.diff`.
+
+### Simulation results
+- Three reported mission runs completed all eight inspection stations.
+- Maximum reported position error: 0.234 m.
+- Maximum reported absolute heading error: 0.0708 rad.
+- Maximum reported absolute linear velocity at completion: 0.041 m/s.
+- Maximum reported absolute angular velocity at completion: 0.048 rad/s.
+- These results were within the configured goal tolerances and stopped-velocity thresholds in the reported runs.
+- A roughly 0.20 m slip during rotation was observed at valve stations in an earlier run. This remains a known behavior to monitor; successful completion does not establish that the slip has been eliminated.
+
+### Behavior Tree path
+- Replaced the machine-specific source-tree path with a package-share path constructed using `get_package_share_directory('amr_ix1_navigation')`.
+- Runtime verification:
+  `ros2 param get /bt_navigator default_nav_to_pose_bt_xml`
+  returned the installed package path ending in `share/amr_ix1_navigation/behavior_trees/my_custom_bt.xml`.
+- This confirms the configured runtime parameter points to the installed BT file. It does not independently verify operation on a different machine.
+
+### Configuration cleanup and checks
+- Removed the duplicate `min_approach_linear_velocity` entry from `FollowPath`.
+- Added `goal_heading_dist_tol: 0.10` to the RPP configuration.
+- YAML parsing completed successfully (`YAML OK`).
+- Python syntax compilation of `navigation.launch.py` completed without errors.
+- Git confirmed that `build/`, `install/`, and `log/` are ignored.
+
+### Scope and limitations
+- The reported mission results are simulation results, not physical-robot validation.
+- Progress-checker and planner-tolerance values remain unchanged; no failure was observed in the reported runs that justified changing them.
+- `docs/rpp_changes.diff` compares the local RPP package with the checked-out Navigation2 Humble upstream source. It is a source comparison, not a complete provenance record.
