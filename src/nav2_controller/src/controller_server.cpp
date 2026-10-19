@@ -18,6 +18,7 @@
 #include <string>
 #include <utility>
 #include <limits>
+#include <cmath>
 
 #include "lifecycle_msgs/msg/state.hpp"
 #include "nav2_core/exceptions.hpp"
@@ -589,27 +590,67 @@ void ControllerServer::publishZeroVelocity()
 bool ControllerServer::isGoalReached()
 {
   geometry_msgs::msg::PoseStamped pose;
-
   if (!getRobotPose(pose)) {
     return false;
   }
 
-  nav_2d_msgs::msg::Twist2D twist = getThresholdedTwist(odom_sub_->getTwist());
-  geometry_msgs::msg::Twist velocity = nav_2d_utils::twist2Dto3D(twist);
+  const nav_2d_msgs::msg::Twist2D twist =
+    getThresholdedTwist(odom_sub_->getTwist());
+  const geometry_msgs::msg::Twist velocity =
+    nav_2d_utils::twist2Dto3D(twist);
 
-  // Use the latest available TF when transforming the goal pose.
+  // Compare the robot pose and path endpoint in the same frame.
+  geometry_msgs::msg::Pose robot_pose_in_path_frame;
   geometry_msgs::msg::PoseStamped end_pose_latest = end_pose_;
   end_pose_latest.header.stamp = builtin_interfaces::msg::Time();
 
-  geometry_msgs::msg::PoseStamped transformed_end_pose;
-  rclcpp::Duration tolerance(
-    rclcpp::Duration::from_seconds(costmap_ros_->getTransformTolerance()));
-  nav_2d_utils::transformPose(
-    costmap_ros_->getTfBuffer(), costmap_ros_->getGlobalFrameID(),
-    end_pose_latest, transformed_end_pose, tolerance);
+  try {
+    const auto transform = costmap_ros_->getTfBuffer()->lookupTransform(
+      end_pose_.header.frame_id,
+      costmap_ros_->getBaseFrameID(),
+      tf2::TimePointZero);
 
-  return goal_checkers_[current_goal_checker_]->isGoalReached(
-    pose.pose, transformed_end_pose.pose, velocity);
+    robot_pose_in_path_frame.position.x = transform.transform.translation.x;
+    robot_pose_in_path_frame.position.y = transform.transform.translation.y;
+    robot_pose_in_path_frame.position.z = transform.transform.translation.z;
+    robot_pose_in_path_frame.orientation = transform.transform.rotation;
+  } catch (const tf2::TransformException & ex) {
+    RCLCPP_WARN_THROTTLE(
+      get_logger(), *get_clock(), 5000,
+      "Cannot check goal: TF from '%s' to '%s' failed: %s",
+      end_pose_.header.frame_id.c_str(),
+      costmap_ros_->getBaseFrameID().c_str(),
+      ex.what());
+    return false;
+  }
+
+  const geometry_msgs::msg::Pose & goal_pose_in_path_frame = end_pose_.pose;
+  const bool reached = goal_checkers_[current_goal_checker_]->isGoalReached(
+    robot_pose_in_path_frame, goal_pose_in_path_frame, velocity);
+
+  const double dx =
+    goal_pose_in_path_frame.position.x - robot_pose_in_path_frame.position.x;
+  const double dy =
+    goal_pose_in_path_frame.position.y - robot_pose_in_path_frame.position.y;
+  const double dxy = std::hypot(dx, dy);
+  const double dyaw = std::atan2(
+    std::sin(
+      tf2::getYaw(goal_pose_in_path_frame.orientation) -
+      tf2::getYaw(robot_pose_in_path_frame.orientation)),
+    std::cos(
+      tf2::getYaw(goal_pose_in_path_frame.orientation) -
+      tf2::getYaw(robot_pose_in_path_frame.orientation)));
+
+  RCLCPP_INFO(
+    get_logger(),
+    "GC: dxy=%.4f dyaw=%.4f goal_x=%.4f goal_y=%.4f "
+    "vx=%.3f wz=%.3f reached=%d",
+    dxy, dyaw,
+    goal_pose_in_path_frame.position.x,
+    goal_pose_in_path_frame.position.y,
+    velocity.linear.x, velocity.angular.z, reached);
+
+  return reached;
 }
 
 bool ControllerServer::getRobotPose(geometry_msgs::msg::PoseStamped & pose)

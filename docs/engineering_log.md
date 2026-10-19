@@ -2308,3 +2308,54 @@ Repeated results support the effectiveness of the timestamp modification in the 
 - Compare the robot pose used by the goal checker at completion with the mission's post-success TF measurement.
 - Investigate why some post-success position errors slightly exceed the configured `xy_goal_tolerance: 0.25` m.
 - Do not change controller or goal-checker parameters until evidence identifies the source of the discrepancy.
+
+## Session 17 — Goal-Checker Frame Consistency and Cell-Centered Waypoints
+**Date:** 2026-10-19
+
+### Objective
+Investigate differences between Nav2 goal-checker XY distance and mission-level position error, align inspection waypoints with map-cell centers, and validate the project-local controller changes.
+
+### Problem
+The mission reports position error relative to its configured waypoint, while the controller's goal checker evaluates the endpoint of the planned path. The path endpoint can correspond to a map-cell center rather than the original waypoint coordinates. Comparing distances to different reference coordinates can therefore produce discrepancies.
+
+### Changes
+- Added `inspection_waypoints_cell_centers.yaml` with the eight main-map station positions aligned to map-cell centers.
+- Updated `inspection_mission.py` to load the cell-centered waypoint configuration.
+- Updated `setup.py` to install the new YAML file.
+- Configured `controller_server.odom_topic` as `/diff_drive_controller/odom`.
+- Changed the stopped-velocity thresholds to `0.05` and `rotate_to_heading_angular_vel` to `0.3` in `nav2_params.yaml`.
+- Modified `ControllerServer::isGoalReached()` to compare the robot pose and path endpoint in the path frame, return false if the required TF lookup fails, and emit diagnostic `GC` logs.
+
+### Build and Runtime Verification
+- `colcon build --packages-select nav2_controller --symlink-install` completed successfully.
+- `ros2 pkg prefix nav2_controller` resolved to the project-local installation:
+  `/home/hossam/ROS2_Master_Journey/AMR_inspection/install/nav2_controller`.
+- Inspection mission `20261019_025057` completed all eight stations successfully.
+- All eight controller diagnostic records reported `reached=1`.
+- Controller `dxy` values ranged from `0.1616 m` to `0.2353 m`.
+- Mission-level position errors ranged from `0.160 m` to `0.235 m`.
+- Mission-level yaw errors ranged from `0.53°` to `1.97°`.
+- The displayed controller and mission position-error values differed by at most approximately `0.002 m`.
+- A search of `nav_gc11.log` found no matches for the selected TF failure patterns. This is not a deliberate test of TF failure handling.
+
+### Engineering Interpretation
+The successful build and eight-station mission demonstrate that the current controller and cell-centered waypoint configuration worked in the tested simulation run. The close agreement between controller and mission position-error values is consistent with both using the same target coordinates in this run.
+
+This experiment does not independently prove that the controller modification caused improved accuracy, nor does it establish behavior under deliberate TF lookup failure.
+
+### Decision
+- Retain the cell-centered waypoint configuration for the current simulation workflow.
+- Preserve `inspection_waypoints_main_map.yaml` as the original reference configuration.
+- Retain the controller modification for further validation, with `GC` diagnostics enabled during the investigation.
+- Keep XY accuracy tuning separate; do not change the goal tolerance based solely on this experiment.
+- Prefer implementing automatic snapping to the nearest valid map-cell center in the waypoint-generation workflow as a future improvement.
+
+### Remaining Verification
+- Test TF lookup failure handling deliberately and verify that the controller does not report goal completion when the required transform is unavailable.
+- Validate the odometry topic and each changed controller parameter independently.
+- Compare the original and cell-centered waypoint configurations under controlled, repeatable conditions.
+- Build and test the complete workspace after the remaining changes are reviewed.
+- Reduce or disable the per-check `INFO` diagnostic log after the investigation is complete.
+
+### Session Outcome
+The project-local controller built successfully and the cell-centered inspection mission completed all eight stations in simulation. The results support using consistent map-cell-center target coordinates for the current workflow. TF failure handling and isolated parameter validation remain outstanding.

@@ -1,0 +1,41 @@
+stations:
+  electric_1:
+    x: 22.955
+    y: -11.325
+    yaw: -1.539933
+    camera_pitch: 0.0
+  electric_2:
+    x: 32.005
+    y: -12.025
+    yaw: 1.534702
+    camera_pitch: 0.0
+  pump_1:
+    x: 27.305
+    y: 9.525
+    yaw: 3.085991
+    camera_pitch: 0.0
+  pump_2:
+    x: 26.655
+    y: 13.475
+    yaw: 3.108323
+    camera_pitch: 0.0
+  tank_1:
+    x: 30.705
+    y: 18.375
+    yaw: 1.145299
+    camera_pitch: -0.302328
+  store_1:
+    x: 8.205
+    y: 28.475
+    yaw: -1.588705
+    camera_pitch: -0.0
+  valve_1:
+    x: 18.655
+    y: 28.075
+    yaw: 0.01137
+    camera_pitch: -0.647444
+  valve_2:
+    x: 18.505
+    y: 15.725
+    yaw: 0.071593
+    camera_pitch: -0.647444

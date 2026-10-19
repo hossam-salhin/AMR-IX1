@@ -12,6 +12,7 @@ setup(
         ('share/' + package_name, ['package.xml']),
         ('share/' + package_name + '/config', ['config/inspection_waypoints_testing_map.yaml']),
         ('share/' + package_name + '/config', ['config/inspection_waypoints_main_map.yaml']),
+        ('share/' + package_name + '/config', ['config/inspection_waypoints_cell_centers.yaml']),
     ],
     install_requires=['setuptools'],
     zip_safe=True,

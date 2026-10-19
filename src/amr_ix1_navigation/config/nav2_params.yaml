@@ -67,6 +67,7 @@ controller_server:
     progress_checker_plugin: "progress_checker"
     goal_checker_plugins: ["general_goal_checker"]
     controller_plugins: ["FollowPath"]
+    odom_topic: /diff_drive_controller/odom
 
     progress_checker:
       plugin: "nav2_controller::SimpleProgressChecker"
@@ -78,8 +79,8 @@ controller_server:
       xy_goal_tolerance: 0.25
       yaw_goal_tolerance: 0.10
       stateful: false
-      trans_stopped_velocity: 0.25
-      rot_stopped_velocity: 0.25
+      trans_stopped_velocity: 0.05
+      rot_stopped_velocity: 0.05
 
     FollowPath:
       plugin: "nav2_regulated_pure_pursuit_controller::RegulatedPurePursuitController"
@@ -95,7 +96,7 @@ controller_server:
       use_velocity_scaled_lookahead_dist: false
       min_turning_radius: 0.0
       use_rotate_to_heading: true
-      rotate_to_heading_angular_vel: 1.0
+      rotate_to_heading_angular_vel: 0.3
       max_angular_accel: 2.0
       rotate_to_heading_min_angle: 0.78
 
