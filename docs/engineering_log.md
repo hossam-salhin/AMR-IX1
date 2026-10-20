@@ -2403,3 +2403,34 @@ The project-local controller built successfully and the cell-centered inspection
 - The reported mission results are simulation results, not physical-robot validation.
 - Progress-checker and planner-tolerance values remain unchanged; no failure was observed in the reported runs that justified changing them.
 - `docs/rpp_changes.diff` compares the local RPP package with the checked-out Navigation2 Humble upstream source. It is a source comparison, not a complete provenance record.
+
+## Session 19 — Modular Robot Description and Hardware-Variant Switch
+
+### Objective
+Prepare the robot description for the physical-robot path without changing simulation behavior. The mechanical design is still being revised, so the replaceable body description is separated from the ros2_control, simulation and sensor parts.
+
+### Decisions recorded
+- Physical drive: 8-inch hoverboard hub motors. The mechanical design is being revised; the URDF body will be replaced after the design is complete.
+- The thermal camera is not available for the physical robot. It stays in simulation only and will be made optional in the mission.
+- The motor boards (2 boards for 4 motors) are being tested by the team with an ESP32 WROOM as separate experiments. The ESP32–ROS protocol and the ros2_control hardware plugin are deferred until the team report is delivered.
+
+### Changes
+- `amr_ix1.urdf.xacro` split into:
+  - `amr_ix1.urdf.xacro` (arguments and includes),
+  - `amr_ix1_base.xacro` (materials, links, joints; the only file to replace with the new design),
+  - `amr_ix1_ros2_control.xacro` (macro; `hardware` = `sim` | `mock` | `real`),
+  - `amr_ix1_gazebo.xacro` (simulation-only tags; `use_thermal`).
+- New arguments: `hardware` (default `sim`) and `use_thermal` (default `true`). The defaults keep the previous simulation behavior.
+- `urdf/README.md` documents the switch, the xacro syntax used, and the names other packages depend on.
+
+### Build and Runtime Verification
+- Offline comparison (PyPI `xacro`, `$(find …)` replaced by fixed paths): the expansion of the new files with `hardware:=sim` matches the original file in structure, order and text. The `mock`, `real` and `use_thermal:=false` variants were only checked for the expected plugin/sensor selection.
+- Reported by the user: files copied into the workspace, package built, simulation behaves as before. [add: `check_urdf` result for sim / mock / real, if run]
+
+### Remaining Verification
+- Not run: `mock_components/GenericSystem` with `diff_drive_controller` (odometry behavior unknown).
+- `hardware:=real` references `amr_ix1_hardware/AmrIx1Hardware`, which does not exist yet; its parameters are placeholders.
+- `wheel_radius`, `wheel_separation` (`controllers.yaml`) and the Nav2 footprint still hold the previous design values and must be revisited when the new design is complete.
+
+### Next Step
+Real-robot bringup launch and a real controllers file, tested with `hardware:=mock`.

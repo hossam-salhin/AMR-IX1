@@ -1,0 +1,79 @@
+<?xml version="1.0"?>
+<!-- ros2_control description. hardware = sim (Ignition) | mock (loop-back) | real (ESP32 bridge).
+     Joint names/interfaces are the contract with controllers.yaml; keep them when the design changes. -->
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <xacro:macro name="amr_ix1_ros2_control" params="hardware">
+    <ros2_control name="amr_ix1_system" type="system">
+
+      <hardware>
+        <xacro:if value="${hardware == 'sim'}">
+          <plugin>ign_ros2_control/IgnitionSystem</plugin>
+        </xacro:if>
+        <xacro:if value="${hardware == 'mock'}">
+          <!-- Loop-back hardware for testing the whole ros2_control/Nav2 chain without a robot -->
+          <plugin>mock_components/GenericSystem</plugin>
+          <param name="calculate_dynamics">true</param>
+        </xacro:if>
+        <xacro:if value="${hardware == 'real'}">
+          <!-- PLACEHOLDERS: plugin class and params are decided when amr_ix1_hardware is written -->
+          <plugin>amr_ix1_hardware/AmrIx1Hardware</plugin>
+          <param name="serial_port">/dev/ttyUSB0</param>
+          <param name="baud_rate">115200</param>
+          <param name="cmd_timeout_ms">500</param>
+        </xacro:if>
+      </hardware>
+
+      <!-- Front Right Wheel -->
+      <joint name="F_R_W_joint">
+        <command_interface name="velocity">
+          <param name="min">-10</param>
+          <param name="max">10</param>
+        </command_interface>
+        <state_interface name="position"/>
+        <state_interface name="velocity"/>
+      </joint>
+
+      <!-- Front Left Wheel -->
+      <joint name="F_L_W_joint">
+        <command_interface name="velocity">
+          <param name="min">-10</param>
+          <param name="max">10</param>
+        </command_interface>
+        <state_interface name="position"/>
+        <state_interface name="velocity"/>
+      </joint>
+
+      <!-- Back Right Wheel -->
+      <joint name="B_R_W_joint">
+        <command_interface name="velocity">
+          <param name="min">-10</param>
+          <param name="max">10</param>
+        </command_interface>
+        <state_interface name="position"/>
+        <state_interface name="velocity"/>
+      </joint>
+
+      <!-- Back Left Wheel -->
+      <joint name="B_L_W_joint">
+        <command_interface name="velocity">
+          <param name="min">-10</param>
+          <param name="max">10</param>
+        </command_interface>
+        <state_interface name="position"/>
+        <state_interface name="velocity"/>
+      </joint>
+
+
+      <!-- Camera Stand — position controlled -->
+      <joint name="cam_stand_joint">
+        <command_interface name="position">
+          <param name="min">-0.7854</param>
+          <param name="max">0.2</param>
+        </command_interface>
+        <state_interface name="position"/>
+        <state_interface name="velocity"/>
+      </joint>
+
+    </ros2_control>
+  </xacro:macro>
+</robot>

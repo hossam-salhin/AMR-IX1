@@ -1,0 +1,230 @@
+<?xml version="1.0"?>
+<!-- Simulation-only tags: ign_ros2_control plugin, wheel friction and simulated sensors.
+     Included only when hardware = sim. use_thermal=false removes the simulated thermal camera. -->
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <xacro:macro name="amr_ix1_gazebo" params="use_thermal:=true">
+    <!-- Gazebo plugin to load ign_ros2_control -->
+    <gazebo>
+      <plugin filename="libign_ros2_control-system.so" name="ign_ros2_control::IgnitionROS2ControlPlugin">
+        <parameters>$(find amr_ix1_gazebo)/config/controllers.yaml</parameters>
+      </plugin>
+    </gazebo>
+
+
+    <!-- Wheel friction properties for Gazebo -->
+    <gazebo reference="F_R_W_Link">
+      <mu1>1.0</mu1>
+      <mu2>0.05</mu2>
+      <fdir1>1 0 0</fdir1>
+      <kp>10000000.0</kp> 
+      <kd>1.0</kd>
+      <minDepth>0.001</minDepth>
+    </gazebo>
+
+    <gazebo reference="F_L_W_Link">
+      <mu1>1.0</mu1>
+      <mu2>0.05</mu2>
+      <fdir1>1 0 0</fdir1>
+      <kp>10000000.0</kp> 
+      <kd>1.0</kd>
+      <minDepth>0.001</minDepth>
+    </gazebo>
+
+    <gazebo reference="B_R_W_Link">
+      <mu1>1.0</mu1>
+      <mu2>0.05</mu2>
+      <fdir1>1 0 0</fdir1>
+      <kp>10000000.0</kp> 
+      <kd>1.0</kd>
+      <minDepth>0.001</minDepth>
+    </gazebo>
+
+    <gazebo reference="B_L_W_Link">
+      <mu1>1.0</mu1>
+      <mu2>0.05</mu2>
+      <fdir1>1 0 0</fdir1>
+      <kp>10000000.0</kp> 
+      <kd>1.0</kd>
+      <minDepth>0.001</minDepth>
+    </gazebo>
+
+
+
+
+    <!-- ================================================================
+         LIDAR SENSOR — RPLidar A1 (simulated)
+         Mounted on laser_Link
+    ================================================================ -->
+    <gazebo reference="laser_Link">
+      <sensor name="gpu_lidar" type="gpu_lidar">
+        <topic>lidar</topic>
+        <gz_frame_id>laser_Link</gz_frame_id>
+        <update_rate>5</update_rate>
+        <ray>
+          <scan>
+            <horizontal>
+              <samples>360</samples>
+              <resolution>1</resolution>
+              <min_angle>-2.9</min_angle>
+              <max_angle>2.9</max_angle>
+            </horizontal>
+            <vertical>
+              <samples>1</samples>
+              <resolution>0.01</resolution>
+              <min_angle>0</min_angle>
+              <max_angle>0</max_angle>
+            </vertical>
+          </scan>
+          <range>
+            <min>0.2</min>
+            <max>12.0</max>
+            <resolution>0.01</resolution>
+          </range>
+          <noise>
+            <type>gaussian</type>
+            <mean>0.0</mean>
+            <stddev>0.01</stddev>
+          </noise>
+        </ray>
+        <always_on>1</always_on>
+        <visualize>false</visualize>
+      </sensor>
+    </gazebo>
+
+
+    <!-- ================================================================
+         IMU SENSOR — ICM-20948 (simulated)
+         Mounted on imu_Link
+    ================================================================ -->
+    <gazebo reference="imu_Link">
+      <sensor name="imu_sensor" type="imu">
+        <always_on>true</always_on>
+        <update_rate>50</update_rate>
+        <visualize>true</visualize>
+        <topic>imu</topic>
+        <gz_frame_id>imu_Link</gz_frame_id>
+        <imu>
+          <angular_velocity>
+            <x>
+              <noise type="gaussian">
+                <mean>0.0</mean>
+                <stddev>2e-4</stddev>
+              </noise>
+            </x>
+            <y>
+              <noise type="gaussian">
+                <mean>0.0</mean>
+                <stddev>2e-4</stddev>
+              </noise>
+            </y>
+            <z>
+              <noise type="gaussian">
+                <mean>0.0</mean>
+                <stddev>2e-4</stddev>
+              </noise>
+            </z>
+          </angular_velocity>
+          <linear_acceleration>
+            <x>
+              <noise type="gaussian">
+                <mean>0.0</mean>
+                <stddev>1.7e-2</stddev>
+              </noise>
+            </x>
+            <y>
+              <noise type="gaussian">
+                <mean>0.0</mean>
+                <stddev>1.7e-2</stddev>
+              </noise>
+            </y>
+            <z>
+              <noise type="gaussian">
+                <mean>0.0</mean>
+                <stddev>1.7e-2</stddev>
+              </noise>
+            </z>
+          </linear_acceleration>
+        </imu>
+      
+        <plugin filename="libignition-gazebo-imu-system.so"
+  			name="ignition::gazebo::systems::Imu">
+  	    </plugin>
+	    
+      </sensor>
+    </gazebo>
+
+
+    <!-- ================================================================
+         RGB CAMERA SENSOR
+         Mounted on camera_Link
+    ================================================================ -->
+    <gazebo reference="camera_Link">
+      <sensor name="rgb_camera" type="camera">
+        <topic>camera/image</topic>
+        <gz_frame_id>camera_Link</gz_frame_id>
+        <always_on>true</always_on>
+        <update_rate>10</update_rate>
+        <visualize>true</visualize>
+        <camera>
+          <horizontal_fov>1.3962634</horizontal_fov>
+          <image>
+            <width>640</width>
+            <height>480</height>
+            <format>R8G8B8</format>
+          </image>
+          <clip>
+            <near>0.02</near>
+            <far>300</far>
+          </clip>
+          <noise>
+            <type>gaussian</type>
+            <mean>0.0</mean>
+            <stddev>0.007</stddev>
+          </noise>
+        </camera>
+      </sensor>
+    </gazebo>
+
+
+    <xacro:if value="${use_thermal}">
+        <!-- ================================================================
+           THERMAL CAMERA SENSOR — FLIR Lepton 3.5 (simulated)
+           Mounted on thermal_link
+           Simulated thermal sensor with L8 output
+           Temperature range: -50°C to 400°C
+        ================================================================ -->
+        <gazebo reference="thermal_link">
+          <sensor name="thermal_camera" type="thermal">
+            <camera>
+              <horizontal_fov>0.9599</horizontal_fov>
+              <image>
+                <width>160</width>
+                <height>120</height>
+                <format>L8</format>
+              </image>
+              <clip>
+                <near>0.1</near>
+                <far>30</far>
+              </clip>
+            </camera>
+
+            <always_on>true</always_on>
+            <update_rate>5</update_rate>
+            <visualize>false</visualize>
+
+            <topic>thermal/image</topic>
+
+            <plugin
+              filename="ignition-gazebo-thermal-sensor-system"
+              name="gz::sim::systems::ThermalSensor">
+              <min_temp>223.15</min_temp>
+              <max_temp>673.15</max_temp>
+              <resolution>3.0</resolution>
+            </plugin>
+          </sensor>
+        </gazebo>
+
+
+    </xacro:if>
+  </xacro:macro>
+</robot>
