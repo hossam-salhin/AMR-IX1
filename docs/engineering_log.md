@@ -2425,7 +2425,8 @@ Prepare the robot description for the physical-robot path without changing simul
 
 ### Build and Runtime Verification
 - Offline comparison (PyPI `xacro`, `$(find …)` replaced by fixed paths): the expansion of the new files with `hardware:=sim` matches the original file in structure, order and text. The `mock`, `real` and `use_thermal:=false` variants were only checked for the expected plugin/sensor selection.
-- Reported by the user: files copied into the workspace, package built, simulation behaves as before. [add: `check_urdf` result for sim / mock / real, if run]
+- files copied into the workspace, package built, simulation behaves as before.
+- `check_urdf` parsed the `mock` and `real` variants successfully with the same link tree (base_footprint → base_link → four wheel links). `check_urdf` does not inspect the ros2_control block.
 
 ### Remaining Verification
 - Not run: `mock_components/GenericSystem` with `diff_drive_controller` (odometry behavior unknown).
