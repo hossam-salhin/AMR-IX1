@@ -2435,3 +2435,34 @@ Prepare the robot description for the physical-robot path without changing simul
 
 ### Next Step
 Real-robot bringup launch and a real controllers file, tested with `hardware:=mock`.
+
+## Session 20 — Real-Robot Bringup Package and Mock-Hardware Validation
+
+### Objective
+Allow the robot stack to start outside Gazebo so that the ros2_control chain can be exercised before the physical hardware is available.
+
+### Changes
+- New package `src/amr_ix1_bringup/`:
+  - `launch/real_bringup.launch.py` starts `robot_state_publisher`, the ros2_control controller manager (`ros2_control_node`), the `joint_state_broadcaster`, `diff_drive_controller` and `cam_stand_controller` spawners, and `twist_stamper`. The `hardware` launch argument (`mock` by default, or `real`) is passed to the URDF xacro.
+  - `config/controllers_real.yaml` has the same controller definitions and values as `amr_ix1_gazebo/config/controllers.yaml`, except `use_sim_time: false`.
+  - `package.xml`, `CMakeLists.txt` and a `README.md` with the run and check commands.
+- `wheel_radius`, `wheel_separation` and the velocity/acceleration limits in `controllers_real.yaml` still hold the previous design values (marked TODO in the file).
+
+### Build and Runtime Verification
+- Offline checks: the launch file compiles; `controllers_real.yaml` is equal to the simulation controllers file apart from `use_sim_time`; `package.xml` is well-formed. These checks do not run ROS.
+- With `hardware:=mock` the launch started and the checks in the package README (hardware component, controllers, `/cmd_vel` to `/diff_drive_controller/odom`) worked as expected.
+
+### Observations and Limitations
+- With the mock hardware, RViz with `odom` as fixed frame showed the robot and it moved with the commanded velocity.
+- Starting the navigation stack together with the mock hardware showed a problem with the map and no data on the LiDAR topic. The mock hardware has no sensors, so the parts of Nav2 that need `/lidar` (localization and the costmap obstacle layers) cannot be exercised in this setup.
+- RViz printed an OpenGL error from the Map display shader (`active samplers with a different type refer to the same texture image unit`). This was not investigated further and is not related to the robot configuration.
+- The mock hardware is a loop-back: it validates the software chain only. Nothing about the physical motors, the ESP32 link, wheel calibration or ground odometry is established.
+
+### Remaining Verification
+- The ros2_control hardware plugin for the real robot (`amr_ix1_hardware`) does not exist yet. `hardware:=real` references a placeholder plugin name.
+- The ESP32–ROS protocol depends on the motor-board report from the team (requested, not yet received).
+
+### Next Step
+1. Mission hardening: optional thermal camera, output directory and waypoint file as parameters, navigation timeout, post-arrival pose check.
+2. Missing package dependencies in the `package.xml` files.
+3. Skeleton of the `amr_ix1_hardware` package.
