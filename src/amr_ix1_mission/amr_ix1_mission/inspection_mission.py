@@ -1,4 +1,3 @@
-from ament_index_python.packages import get_package_share_directory
 #!/usr/bin/env python3
 
 import csv
@@ -11,6 +10,7 @@ from datetime import datetime
 import cv2
 import rclpy
 import yaml
+from ament_index_python.packages import get_package_share_directory
 from cv_bridge import CvBridge
 from geometry_msgs.msg import PoseStamped
 from nav2_simple_commander.robot_navigator import BasicNavigator, TaskResult
@@ -32,6 +32,17 @@ class InspectionMission(Node):
     def __init__(self):
         super().__init__('inspection_mission')
 
+        self.declare_parameter('waypoints_file', 'inspection_waypoints_cell_centers.yaml')
+        self.declare_parameter('output_root', '~/inspection_runs')
+        self.declare_parameter('use_thermal', True)
+        self.declare_parameter('set_initial_pose', False)
+        self.declare_parameter('initial_pose_x', 0.0)
+        self.declare_parameter('initial_pose_y', 0.0)
+        self.declare_parameter('initial_pose_yaw', 0.0)
+        self.declare_parameter('confirm_start', False)
+
+        self.use_thermal = bool(self.get_parameter('use_thermal').value)
+
         self.bridge = CvBridge()
 
         self.latest_rgb = None
@@ -44,9 +55,10 @@ class InspectionMission(Node):
         self.create_subscription(
             Image, '/camera/image', self.rgb_callback, 10
         )
-        self.create_subscription(
-            Image, '/thermal/image', self.thermal_callback, 10
-        )
+        if self.use_thermal:
+            self.create_subscription(
+                Image, '/thermal/image', self.thermal_callback, 10
+            )
         self.create_subscription(
             JointState, '/joint_states', self.camera_state_callback, 10
         )
@@ -203,7 +215,7 @@ class InspectionMission(Node):
                 and self.rgb_time != initial_rgb
             )
 
-            thermal_fresh = (
+            thermal_fresh = (not self.use_thermal) or (
                 self.latest_thermal is not None
                 and self.thermal_time != initial_thermal
             )
@@ -214,7 +226,9 @@ class InspectionMission(Node):
         return False
 
     def save_images(self, output_dir, station_name):
-        if self.latest_rgb is None or self.latest_thermal is None:
+        if self.latest_rgb is None or (
+            self.use_thermal and self.latest_thermal is None
+        ):
             return False, 'Missing image frame'
 
         try:
@@ -223,23 +237,24 @@ class InspectionMission(Node):
                 desired_encoding='bgr8'
             )
 
-            thermal = self.bridge.imgmsg_to_cv2(
-                self.latest_thermal,
-                desired_encoding='passthrough'
-            )
-
             rgb_path = os.path.join(
                 output_dir, f'{station_name}_rgb.png'
-            )
-            thermal_path = os.path.join(
-                output_dir, f'{station_name}_thermal.png'
             )
 
             if not cv2.imwrite(rgb_path, rgb):
                 return False, 'Failed to save RGB image'
 
-            if not cv2.imwrite(thermal_path, thermal):
-                return False, 'Failed to save thermal image'
+            if self.use_thermal:
+                thermal = self.bridge.imgmsg_to_cv2(
+                    self.latest_thermal,
+                    desired_encoding='passthrough'
+                )
+                thermal_path = os.path.join(
+                    output_dir, f'{station_name}_thermal.png'
+                )
+
+                if not cv2.imwrite(thermal_path, thermal):
+                    return False, 'Failed to save thermal image'
 
             return True, ''
 
@@ -261,11 +276,19 @@ class InspectionMission(Node):
         return pose
 
 
-def load_waypoints():
+def resolve_waypoints_path(waypoints_file):
+    """Absolute path -> used as is; a bare name -> looked up in the package config directory."""
+    waypoints_file = os.path.expanduser(waypoints_file)
+
+    if os.path.isabs(waypoints_file):
+        return waypoints_file
+
     package_root = get_package_share_directory('amr_ix1_mission')
-    yaml_path = os.path.join(
-        package_root, 'config', 'inspection_waypoints_cell_centers.yaml'
-    )
+    return os.path.join(package_root, 'config', waypoints_file)
+
+
+def load_waypoints(waypoints_file):
+    yaml_path = resolve_waypoints_path(waypoints_file)
 
     with open(yaml_path, 'r', encoding='utf-8') as file:
         data = yaml.safe_load(file)
@@ -288,17 +311,69 @@ def main():
     )
     executor_thread.start()
 
-    stations = load_waypoints()
+    stations = load_waypoints(mission.get_parameter('waypoints_file').value)
+
+    # --- Initial pose -------------------------------------------------------------
+    # BasicNavigator.waitUntilNav2Active() publishes its default initial pose (0, 0, 0)
+    # whenever no amcl_pose has been received yet. That silently moves the localization
+    # estimate to the map origin if the robot is somewhere else.
+    #   set_initial_pose:=true -> publish the pose given by initial_pose_x/y/yaw
+    #   otherwise              -> publish nothing; AMCL must already have its own pose
+    if mission.get_parameter('set_initial_pose').value:
+        init_x = float(mission.get_parameter('initial_pose_x').value)
+        init_y = float(mission.get_parameter('initial_pose_y').value)
+        init_yaw = float(mission.get_parameter('initial_pose_yaw').value)
+
+        initial_pose = mission.make_pose(init_x, init_y, init_yaw)
+        # A zero stamp lets AMCL use its own (possibly simulated) clock.
+        initial_pose.header.stamp = rclpy.time.Time().to_msg()
+        navigator.setInitialPose(initial_pose)
+
+        mission.get_logger().info(
+            f'Initial pose will be published: x={init_x:.3f}, y={init_y:.3f}, '
+            f'yaw={math.degrees(init_yaw):.2f} deg'
+        )
+    else:
+        # Public flag of BasicNavigator: pretend a pose was already received so that the
+        # default (0, 0, 0) pose is not published. The real pose is checked below.
+        navigator.initial_pose_received = True
+
+    navigator.waitUntilNav2Active()
+
+    try:
+        start_x, start_y, start_yaw = mission.get_robot_pose(timeout_sec=15.0)
+    except RuntimeError as exc:
+        mission.get_logger().error(
+            f'No localization estimate (map -> base_footprint): {exc}. '
+            'Set the pose with 2D Pose Estimate in RViz, or run with '
+            '-p set_initial_pose:=true -p initial_pose_x:=... -p initial_pose_y:=... '
+            '-p initial_pose_yaw:=...'
+        )
+        mission.destroy_node()
+        rclpy.shutdown()
+        return
+
+    mission.get_logger().info(
+        f'Start pose in map: x={start_x:.3f}, y={start_y:.3f}, '
+        f'yaw={math.degrees(start_yaw):.2f} deg'
+    )
+
+    if mission.get_parameter('confirm_start').value:
+        try:
+            input(
+                'Check that this pose matches the real robot position '
+                '(ENTER to start, Ctrl+C to abort): '
+            )
+        except (KeyboardInterrupt, EOFError):
+            mission.get_logger().info('Mission aborted by the operator')
+            mission.destroy_node()
+            rclpy.shutdown()
+            return
 
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
 
-    output_dir = os.path.expanduser(
-        os.path.join(
-            '~/ROS2_Master_Journey/AMR_inspection',
-            'inspection_runs',
-            timestamp
-        )
-    )
+    output_root = os.path.expanduser(mission.get_parameter('output_root').value)
+    output_dir = os.path.join(output_root, timestamp)
 
     os.makedirs(output_dir, exist_ok=True)
 
@@ -326,7 +401,6 @@ def main():
             'timestamp'
         ])
 
-        navigator.waitUntilNav2Active()
         mission.get_logger().info('Setting camera stand to neutral at mission start')
         mission.set_camera_pitch(0.0)
 
@@ -474,7 +548,8 @@ def main():
                 if capture_result:
                     capture_status = 'saved'
                     mission.get_logger().info(
-                        f'{station_name}: RGB + thermal saved'
+                        f'{station_name}: '
+                        + ('RGB + thermal saved' if mission.use_thermal else 'RGB saved')
                     )
                 else:
                     capture_status = f'failed: {capture_error}'

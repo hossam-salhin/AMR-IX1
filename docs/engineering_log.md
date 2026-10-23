@@ -2466,3 +2466,39 @@ Allow the robot stack to start outside Gazebo so that the ros2_control chain can
 1. Mission hardening: optional thermal camera, output directory and waypoint file as parameters, navigation timeout, post-arrival pose check.
 2. Missing package dependencies in the `package.xml` files.
 3. Skeleton of the `amr_ix1_hardware` package.
+
+## Session 21 — Mission Parameters, Initial-Pose Guard and Snapped Waypoint Recording
+
+### Objective
+Make the inspection mission safer to run (no silent localization reset), independent of the simulated thermal camera, and portable (no hard-coded paths), and make recorded waypoints consistent with the cell centers that Nav2 plans to.
+
+### Observed Problem
+- Nav2 was restarted while the robot stood away from the map origin. RViz then showed the robot at the start pose, while Gazebo showed it in place. The robot drove along a path planned from the wrong estimate and got stuck.
+- Mission output of that run: `amcl/get_state service not available, waiting...`, followed by three repetitions of `Setting initial pose` / `Publishing Initial Pose` / `Waiting for amcl_pose to be received`. These lines were absent in the next run after a full restart.
+- The installed `BasicNavigator` (`nav2_simple_commander`) calls `_waitForInitialPose()` from `waitUntilNav2Active()`. While `initial_pose_received` is False it publishes `self.initial_pose`, which defaults to an empty pose (map origin), on the `initialpose` topic.
+- AMCL is also configured with `set_initial_pose: true` and `initial_pose` (0, 0, 0). Both sources give the map origin, so the logs do not show which one set the estimate. The behavior is consistent with a wrong pose estimate; it was not measured.
+
+### Changes (`src/amr_ix1_mission`)
+- `inspection_mission.py`:
+  - By default the mission publishes no initial pose (`BasicNavigator.initial_pose_received` is set before `waitUntilNav2Active()`). After Nav2 is active it requires `map -> base_footprint` (15 s) and logs `Start pose in map`; otherwise it stops with an explanation.
+  - Parameters: `set_initial_pose`, `initial_pose_x`, `initial_pose_y`, `initial_pose_yaw` (explicit pose, published with a zero stamp), `confirm_start` (waits for ENTER after showing the start pose), `use_thermal` (default true), `waypoints_file`, `output_root`.
+  - `use_thermal:=false` removes the thermal subscription, the wait for a thermal frame and the thermal image saving.
+  - Default `output_root` changed from `~/ROS2_Master_Journey/AMR_inspection/inspection_runs` to `~/inspection_runs`.
+  - The shebang is now the first line of the file.
+- `waypoint_recorder.py`: subscribes to `/map` (transient local) and snaps the recorded x/y to the center of the containing map cell. It prints raw and snapped values and writes the snapped values to the YAML block with the raw values as comments. If `/map` is missing or the map origin is rotated it prints a warning and does not snap.
+
+### Build and Runtime Verification
+- Offline: both files compile; the snapping function reproduces the eight snapped waypoints in `inspection_waypoints_cell_centers.yaml` from their raw values (map resolution 0.05, origin (-2.57, -27.9)); the waypoint file path resolution was checked for a bare name, an absolute path and `~`.
+
+- `waypoint_recorder` ran, a recorded point was snapped, placed in the config, and the mission used it.
+- After a full restart, `ros2 run amr_ix1_mission inspection_mission --ros-args -p use_thermal:=false` printed no `Setting initial pose` lines, logged `Start pose in map: x=0.000, y=0.000, yaw=0.00 deg`, completed navigation to the first station and saved the RGB image under `~/inspection_runs`.
+- A second run after the robot was moved to another place also navigated.
+- A default run (thermal enabled) saved `*_rgb.png`, `*_thermal.png` and `inspection_log.csv` in the run folder.
+
+### Limitations
+- The mission cannot detect a wrong but confident pose estimate. If AMCL starts from its configured pose (0, 0, 0) while the robot is elsewhere, the estimate is wrong. After restarting Nav2 away from the origin, the pose must be set (2D Pose Estimate in RViz, or `set_initial_pose`) and checked against the scan; `confirm_start:=true` is available for that.
+- Not run: `set_initial_pose:=true`, `confirm_start:=true`, and a custom `waypoints_file`.
+- Snapping assumes the costmap grid equals the map grid (same resolution and origin).
+
+### Remaining Work (mission hardening)
+Navigation timeout with goal cancellation, handling of Ctrl+C, a failure policy (retry or skip), a pose check after the robot has settled, and a check that the waypoint file is aligned with the loaded `/map`.

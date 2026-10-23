@@ -5,7 +5,9 @@ import threading
 import time
 
 import rclpy
+from nav_msgs.msg import OccupancyGrid
 from rclpy.node import Node
+from rclpy.qos import DurabilityPolicy, HistoryPolicy, QoSProfile, ReliabilityPolicy
 from sensor_msgs.msg import JointState
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 from tf2_ros import Buffer, TransformListener
@@ -18,6 +20,18 @@ CAMERA_COMMAND_DURATION = 2.0
 CAMERA_TOLERANCE = 0.01
 
 
+def snap_to_cell_center(x, y, resolution, origin_x, origin_y):
+    """Return the center of the map cell that contains (x, y).
+
+    Nav2's global planner works on the costmap grid, so the path ends at a cell center.
+    Using cell centers as waypoints makes the goal that Nav2 checks identical to the
+    waypoint that the mission reports against.
+    """
+    cx = origin_x + (math.floor((x - origin_x) / resolution) + 0.5) * resolution
+    cy = origin_y + (math.floor((y - origin_y) / resolution) + 0.5) * resolution
+    return cx, cy
+
+
 class WaypointRecorder(Node):
     def __init__(self):
         super().__init__('waypoint_recorder')
@@ -26,6 +40,17 @@ class WaypointRecorder(Node):
         self.tf_listener = TransformListener(self.tf_buffer, self)
 
         self.latest_camera_pitch = None
+        self.map_info = None
+
+        map_qos = QoSProfile(
+            depth=1,
+            history=HistoryPolicy.KEEP_LAST,
+            reliability=ReliabilityPolicy.RELIABLE,
+            durability=DurabilityPolicy.TRANSIENT_LOCAL
+        )
+        self.map_sub = self.create_subscription(
+            OccupancyGrid, '/map', self.map_callback, map_qos
+        )
 
         self.camera_state_sub = self.create_subscription(
             JointState,
@@ -38,6 +63,27 @@ class WaypointRecorder(Node):
             JointTrajectory,
             CAMERA_CONTROLLER_TOPIC,
             10
+        )
+
+    def map_callback(self, msg):
+        self.map_info = msg.info
+
+    def snap(self, x, y):
+        """Snap a map-frame point to the center of its map cell.
+
+        Raises RuntimeError if /map has not been received or the map origin is rotated.
+        """
+        if self.map_info is None:
+            raise RuntimeError('No /map message received yet')
+
+        info = self.map_info
+        q = info.origin.orientation
+
+        if abs(q.x) > 1e-6 or abs(q.y) > 1e-6 or abs(q.z) > 1e-6:
+            raise RuntimeError('Map origin is rotated; cell snapping is not supported')
+
+        return snap_to_cell_center(
+            x, y, info.resolution, info.origin.position.x, info.origin.position.y
         )
 
     def camera_state_callback(self, msg):
@@ -156,6 +202,7 @@ def main():
         f'[{CAMERA_MIN_PITCH:.4f}, {CAMERA_MAX_PITCH:.4f}] rad'
     )
     print('Move the robot to the desired station.')
+    print('x/y are snapped to the center of the map cell (needs /map).')
     print('The recorder will set and save the camera pitch for that station.')
     print('Type q + ENTER at the station-name prompt to quit.\n')
 
@@ -189,10 +236,21 @@ def main():
                 else:
                     actual_pitch = current_pitch
 
-                x, y, yaw = node.get_current_pose()
+                raw_x, raw_y, yaw = node.get_current_pose()
+
+                try:
+                    x, y = node.snap(raw_x, raw_y)
+                    shift_cm = math.hypot(x - raw_x, y - raw_y) * 100.0
+                    snapped_note = f'snapped to cell center, moved {shift_cm:.1f} cm'
+                except RuntimeError as exc:
+                    x, y = raw_x, raw_y
+                    snapped_note = f'NOT snapped: {exc}'
+                    print(f'\nWARNING: {snapped_note}')
 
                 print(f'\n{name}:')
-                print(f'  x            = {x:.6f}')
+                print(f'  raw x        = {raw_x:.6f}')
+                print(f'  raw y        = {raw_y:.6f}')
+                print(f'  x            = {x:.6f}   ({snapped_note})')
                 print(f'  y            = {y:.6f}')
                 print(
                     f'  yaw          = {yaw:.6f} rad '
@@ -205,8 +263,8 @@ def main():
 
                 print('\nYAML:')
                 print(f'  {name}:')
-                print(f'    x: {x:.6f}')
-                print(f'    y: {y:.6f}')
+                print(f'    x: {x:.6f}    # raw {raw_x:.6f}')
+                print(f'    y: {y:.6f}    # raw {raw_y:.6f}')
                 print(f'    yaw: {yaw:.6f}')
                 print(f'    camera_pitch: {actual_pitch:.6f}')
                 print()
